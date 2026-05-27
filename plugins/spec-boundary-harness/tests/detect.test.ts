@@ -42,6 +42,23 @@ describe("detectInputs", () => {
     expect(r.candidates.length).toBe(1);
     expect(r.candidates[0].featureId).toBe("feature.valid");
   });
+  it("accepts a bundle with only prd/ and free-form .md files at the root (v0.5.0 layout)", async () => {
+    const root = path.join(TMP, "prd-plus-loose");
+    const bundle = path.join(root, "inputs", "review.create");
+    await fs.mkdir(path.join(bundle, "prd"), { recursive: true });
+    await fs.writeFile(path.join(bundle, "prd", "review.md"), "# PRD\n", "utf8");
+    await fs.writeFile(path.join(bundle, "transcript.md"), "# transcript\n", "utf8");
+    await fs.writeFile(path.join(bundle, "api-notes.md"), "# api\n", "utf8");
+    const r = await detectInputs(root);
+    expect(r.candidates.length).toBe(1);
+    expect(r.candidates[0].featureId).toBe("review.create");
+  });
+  it("rejects a bundle whose prd/ is empty (no content)", async () => {
+    const root = path.join(TMP, "empty-prd");
+    await fs.mkdir(path.join(root, "inputs", "feature.empty.prd", "prd"), { recursive: true });
+    const r = await detectInputs(root);
+    expect(r.candidates.length).toBe(0);
+  });
   it("scans both inputs/ and examples/", async () => {
     const root = path.join(TMP, "both-roots");
     await fs.mkdir(path.join(root, "inputs", "a.x", "prd"), { recursive: true });

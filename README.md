@@ -160,20 +160,36 @@ node ./bin/spec-harness.mjs detect            # lists inputs/* and examples/*
 /spec-harness examples/auth-login auth.login
 ```
 
-For your own feature, drop a bundle under `inputs/<feature-id>/` **in your project directory** (not in the plugin):
+For your own feature, drop a bundle under `inputs/<feature-id>/` **in your project directory** (not in the plugin). The layout is intentionally simple — only `prd/` is required, everything else is free-form:
 
 ```
 your-project/
 └── inputs/
     └── payment.checkout/
-        ├── prd/checkout.md
-        ├── plaud/{transcript,summary}.md
-        ├── endpoints/api-notes.md
-        ├── design/             (optional)
-        └── profile.yaml        (optional)
+        ├── prd/                ← REQUIRED. Non-negotiable spec.
+        │   └── checkout.md
+        ├── transcript.md       ← free-form: name it whatever you want
+        ├── summary.md
+        ├── api-draft.md
+        ├── design-notes.md
+        └── profile.yaml        ← OPTIONAL
 ```
 
-Then `/spec-harness` from inside your project. The harness wrapper writes outputs (`specs/`, `reports/`) into your project, not into the plugin install.
+Claude reads each file and classifies it by content (PRD-level / summary / endpoint-notes / transcript / design). You don't have to put things in specific subfolders.
+
+Then `/spec-harness` from inside your project. The harness produces **3 Korean hand-off documents** under `results/<feature-id>/`:
+
+```
+your-project/
+├── inputs/payment.checkout/          ← your inputs (unchanged)
+├── results/payment.checkout/
+│   ├── 01-공통-규칙.md                 ← 양쪽 다 봐야 하는 문서 (계약, 충돌, 통합 체크리스트)
+│   ├── 02-프론트엔드-작업.md            ← 프론트엔드 개발자에게 그대로 전달
+│   └── 03-백엔드-작업.md                ← 백엔드 개발자에게 그대로 전달
+└── .archive/payment.checkout-<ts>/   ← 중간 산출물은 자동 보관 (디버깅용)
+```
+
+Codex acts as a strict **critical/high-only reviewer** — minor wording and "would be nicer" suggestions are out of scope, so the loop converges fast.
 
 ## Architecture
 

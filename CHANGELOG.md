@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-27
+
+User-facing redesign based on four feedback items: simpler input layout, Korean output, smaller result surface, stricter reviewer.
+
+### Changed — input layout
+
+`inputs/<feature>/` is now **PRD-only required**, everything else is free-form. The four-folder convention (`prd/`, `plaud/`, `endpoints/`, `design/`) is no longer expected:
+
+```
+inputs/<feature-id>/
+├── prd/                  ← REQUIRED. Non-negotiable spec.
+│   └── *.md
+├── *.md / */             ← FREE-FORM. Name and arrange however you like.
+└── profile.yaml          ← OPTIONAL.
+```
+
+Claude classifies each file by content (PRD-level / summary / endpoint notes / transcript / design), so users don't have to think about which folder a file belongs to.
+
+`detect.ts` was tightened to require a non-empty `prd/` directory. Legacy bundles with `plaud/`/`endpoints/`/`design/` markers still detect for backward compatibility.
+
+### Changed — result surface
+
+The user now sees only **three Korean hand-off documents** at `results/<feature-id>/`, written by the finalizer after Codex review:
+
+- `01-공통-규칙.md` — shared rules: feature summary, decisions, conflicts/security, API contract summary in prose, HTTP-code↔UI-state mapping, integration checklist, L0–L4 responsibility split
+- `02-프론트엔드-작업.md` — frontend developer's task brief
+- `03-백엔드-작업.md` — backend developer's task brief
+
+All three are in **Korean** and self-contained: a developer can paste any one as the entire context for their own Claude Code session and start working.
+
+The 11 intermediate artifacts under `specs/<feature>/` and the supporting reports under `reports/` are **auto-archived** to `.archive/<feature-id>-<timestamp>/` after the pipeline completes. The user's project surface stays minimal.
+
+### Changed — reviewer severity policy
+
+`codex-validator.md` now instructs Codex to report **only `critical` and `high`-severity findings**. The following are explicitly out of scope and will not be reported:
+
+- Source-ref line-precision corrections
+- Terminology and naming consistency
+- Stylistic / "would be nicer to" suggestions
+- Wording or grammar polish
+
+The reviewer focuses on contract integrity and boundary integrity. The triage loop converges faster as a result.
+
+### Process
+
+- Phase 1 (analyzer) still writes 11 intermediate artifacts; they're internal now.
+- Phase 2 (Codex validator) returns only critical/high.
+- Phase 3 (finalizer) writes the 3 Korean documents and auto-archives intermediates.
+
+### Notes for upgraders
+
+- Existing samples (`examples/auth-login`, `examples/review.create`) keep their 4-folder layout (backward compat). New work should use the simpler layout.
+- After running spec-harness, expect `results/<feature>/` + `.archive/<feature>-<ts>/` instead of `specs/<feature>/` + `reports/` at the project surface.
+
 ## [0.4.0] — 2026-05-27
 
 Restructure the repo into the standard Claude Code marketplace layout: `plugins/<name>/` subdirectory + path-form `source`. This is the most portable form across Claude Code versions and avoids SSH cloning entirely.

@@ -40,10 +40,24 @@ function hasReadableContent(dir: string): boolean {
 }
 
 function looksLikeInput(entryPath: string): boolean {
-  // A directory is treated as an input bundle when at least one of these
-  // subdirectories or files is present AND the bundle contains at least one
-  // readable content file.
-  const hasMarker = ["prd", "plaud", "endpoints", "design", "profile.yaml"].some((sub) => {
+  // A directory is treated as an input bundle when:
+  //   1) it contains a `prd/` subdirectory with at least one readable file
+  //      (the only required marker; the rest of the bundle is free-form), OR
+  //   2) for legacy/bundled examples, any of the older markers exists
+  //      (prd/plaud/endpoints/design/profile.yaml) AND there is some readable
+  //      content somewhere under the candidate.
+  const prdDir = path.join(entryPath, "prd");
+  let prdIsValid = false;
+  try {
+    const stat = statSync(prdDir);
+    if (stat.isDirectory()) prdIsValid = hasReadableContent(prdDir);
+  } catch {
+    prdIsValid = false;
+  }
+  if (prdIsValid) return true;
+
+  // Legacy fallback: an older layout that has a different marker but no prd/.
+  const hasLegacyMarker = ["plaud", "endpoints", "design", "profile.yaml"].some((sub) => {
     try {
       statSync(path.join(entryPath, sub));
       return true;
@@ -51,7 +65,7 @@ function looksLikeInput(entryPath: string): boolean {
       return false;
     }
   });
-  if (!hasMarker) return false;
+  if (!hasLegacyMarker) return false;
   return hasReadableContent(entryPath);
 }
 
