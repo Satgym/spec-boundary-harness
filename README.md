@@ -4,6 +4,39 @@
 
 Convert feature planning materials (PRD, PLAUD transcripts/summaries, endpoint notes, design notes, project profile) into a structured set of frontend / backend boundary contracts and Claude Code work packets — with an independent Codex review pass that catches what the first LLM missed.
 
+## Install (Claude Code plugin)
+
+This repo is a Claude Code marketplace. In any Claude Code session:
+
+```text
+/plugin marketplace add Satgym/spec-boundary-harness
+/plugin install spec-boundary-harness
+```
+
+Then in any project directory:
+
+```text
+/spec-harness
+```
+
+That's the whole interface.
+
+### Updating
+
+```text
+/plugin marketplace update Satgym/spec-boundary-harness
+/plugin install spec-boundary-harness
+```
+
+The wrapper script re-runs `npm install` automatically on the next harness invocation when `package.json` has changed (hash-gated, so no overhead on unchanged runs).
+
+### Requirements
+
+- Node.js 22+ (the wrapper bootstraps dependencies lazily on first run)
+- [Codex CLI](https://github.com/openai/codex) authenticated (`codex doctor` should be green)
+
+Without Codex, Phase 1 still runs but validation is skipped and the harness exits non-zero (no silent fail-open).
+
 ## Why
 
 When you hand a PRD + transcript to Claude Code and ask for "the login screen", Claude will happily put password verification in the frontend, invent endpoints the PRD never confirmed, and treat a stray phrase in the transcript as a developer instruction. This harness prevents that by:
