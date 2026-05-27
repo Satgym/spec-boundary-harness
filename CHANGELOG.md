@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-05-27
+
+### Fixed
+- `marketplace.json` plugin `source` switched from the path form (`"."`) to the explicit GitHub object form (`{"source": "github", "repo": "Satgym/spec-boundary-harness"}`). The path form is only recognised by recent Claude Code builds; the GitHub form is supported across a wider range of versions. Resolves "This plugin uses a source type your Claude Code version does not support."
+- Removed unverified `$schema` URLs from `marketplace.json` and `plugin.json` (the JSON Schema Store entries we referenced may not exist, which can cause strict parsers to reject the file).
+
+### Notes
+- If installation still fails after `/plugin marketplace update Satgym/spec-boundary-harness`, update Claude Code itself (the error message recommends this) or fall back to the manual install instructions in README.md.
+
 ## [0.3.0] — 2026-05-27
 
 First release packaged as a Claude Code plugin / marketplace.

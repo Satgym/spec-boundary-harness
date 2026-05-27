@@ -37,6 +37,29 @@ The wrapper script re-runs `npm install` automatically on the next harness invoc
 
 Without Codex, Phase 1 still runs but validation is skipped and the harness exits non-zero (no silent fail-open).
 
+### Troubleshooting install
+
+If `/plugin install spec-boundary-harness` fails with
+**"This plugin uses a source type your Claude Code version does not support"**:
+
+1. **Refresh the marketplace first**:
+   ```text
+   /plugin marketplace update Satgym/spec-boundary-harness
+   ```
+   then retry the install. The marketplace manifest is now in the GitHub-object source form, which is more widely supported.
+2. **Update Claude Code** (the error message recommends this). Some older builds don't recognise the newer `source` formats.
+3. **Manual install as a fallback** — clone the repo somewhere and use the wrapper directly:
+   ```bash
+   git clone https://github.com/Satgym/spec-boundary-harness.git ~/spec-boundary-harness
+   cd ~/spec-boundary-harness && npm install
+   ```
+   Then run the wrapper from your project directory:
+   ```bash
+   bash ~/spec-boundary-harness/scripts/spec-harness.sh detect
+   bash ~/spec-boundary-harness/scripts/spec-harness.sh validate inputs/<feature> <feature>
+   ```
+   The slash command in this mode is not registered with Claude Code, but you can paste the contents of `~/spec-boundary-harness/.claude/commands/spec-harness.md` as a prompt to drive the same pipeline.
+
 ## Why
 
 When you hand a PRD + transcript to Claude Code and ask for "the login screen", Claude will happily put password verification in the frontend, invent endpoints the PRD never confirmed, and treat a stray phrase in the transcript as a developer instruction. This harness prevents that by:

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "spec-boundary-harness",
   "owner": {
     "name": "Satgym",
@@ -7,14 +6,17 @@
   },
   "metadata": {
     "description": "Heterogeneous LLM cross-validation for feature planning. Claude analyzes PRD/PLAUD/notes and writes 11 boundary contracts; Codex re-reads everything in --sandbox read-only and validates in one pass; Claude triages findings and applies safe fixes.",
-    "version": "0.3.0"
+    "version": "0.3.1"
   },
   "plugins": [
     {
       "name": "spec-boundary-harness",
-      "source": ".",
       "description": "Turn planning materials into frontend/backend boundary contracts and Claude Code work packets, with Codex as an independent read-only reviewer.",
-      "version": "0.3.0",
+      "version": "0.3.1",
+      "source": {
+        "source": "github",
+        "repo": "Satgym/spec-boundary-harness"
+      },
       "category": "planning",
       "tags": [
         "spec",

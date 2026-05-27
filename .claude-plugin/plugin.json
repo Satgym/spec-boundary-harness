@@ -1,7 +1,6 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "spec-boundary-harness",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Heterogeneous LLM cross-validation for feature planning. Claude analyzes inputs and writes 11 boundary contracts; Codex re-reads everything in --sandbox read-only and validates in one pass; Claude triages findings and applies safe fixes.",
   "author": {
     "name": "Satgym",
@@ -18,18 +17,5 @@
     "flutter",
     "planning",
     "cross-validation"
-  ],
-  "commands": "./.claude/commands",
-  "skills": "./.claude/skills",
-  "agents": "./.claude/agents",
-  "requirements": {
-    "node": ">=22",
-    "external": [
-      {
-        "name": "codex",
-        "description": "Codex CLI is required for the Phase 2 read-only validator. Without it, Phase 1 still runs but validation is skipped.",
-        "install_hint": "https://docs.codex.com / `codex doctor`"
-      }
-    ]
-  }
+  ]
 }
