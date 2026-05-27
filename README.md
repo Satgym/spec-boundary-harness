@@ -91,17 +91,18 @@ If marketplace install keeps failing, clone the repo directly:
 
 ```bash
 git clone https://github.com/Satgym/spec-boundary-harness.git ~/spec-boundary-harness
-cd ~/spec-boundary-harness && npm install
+cd ~/spec-boundary-harness/plugins/spec-boundary-harness && npm install
 ```
 
 Then run the wrapper from your project directory:
 
 ```bash
-bash ~/spec-boundary-harness/scripts/spec-harness.sh detect
-bash ~/spec-boundary-harness/scripts/spec-harness.sh validate inputs/<feature> <feature>
+PLUGIN=~/spec-boundary-harness/plugins/spec-boundary-harness
+bash "$PLUGIN/scripts/spec-harness.sh" detect
+bash "$PLUGIN/scripts/spec-harness.sh" validate inputs/<feature> <feature>
 ```
 
-The slash command in this mode is not registered with Claude Code, but you can paste the contents of `~/spec-boundary-harness/.claude/commands/spec-harness.md` as a prompt to drive the same pipeline.
+The slash command in this mode is not registered with Claude Code, but you can paste the contents of `~/spec-boundary-harness/plugins/spec-boundary-harness/.claude/commands/spec-harness.md` as a prompt to drive the same pipeline.
 
 ## Why
 
@@ -145,35 +146,34 @@ reports/
   validate-preflight.md
 ```
 
-## Quickstart
+## Quickstart (developer / manual)
 
 ```bash
 git clone https://github.com/Satgym/spec-boundary-harness.git
-cd spec-boundary-harness
+cd spec-boundary-harness/plugins/spec-boundary-harness    # plugin sources live here
 npm install
 node ./bin/spec-harness.mjs init
 
-# Try the bundled sample (auth.login):
+# Try a bundled sample (auth.login):
 node ./bin/spec-harness.mjs detect            # lists inputs/* and examples/*
 # In Claude Code or any Claude session with Bash, run the skill with explicit args:
 /spec-harness examples/auth-login auth.login
 ```
 
-The no-argument form (`/spec-harness`) only works cleanly when exactly one input bundle is present. A fresh clone ships with both `examples/auth-login` and `inputs/review.create` (the meta-review test bundle), so you must pass arguments to disambiguate.
-
-For your own feature, drop a bundle under `inputs/<feature-id>/`:
+For your own feature, drop a bundle under `inputs/<feature-id>/` **in your project directory** (not in the plugin):
 
 ```
-inputs/
-└── payment.checkout/
-    ├── prd/checkout.md
-    ├── plaud/{transcript,summary}.md
-    ├── endpoints/api-notes.md
-    ├── design/             (optional)
-    └── profile.yaml        (optional)
+your-project/
+└── inputs/
+    └── payment.checkout/
+        ├── prd/checkout.md
+        ├── plaud/{transcript,summary}.md
+        ├── endpoints/api-notes.md
+        ├── design/             (optional)
+        └── profile.yaml        (optional)
 ```
 
-Then `/spec-harness`.
+Then `/spec-harness` from inside your project. The harness wrapper writes outputs (`specs/`, `reports/`) into your project, not into the plugin install.
 
 ## Architecture
 
@@ -235,39 +235,40 @@ Server-only logic (password verification, payment/pricing calc, permission decis
 
 ## Repository layout
 
+This repo is a Claude Code **marketplace** that ships one **plugin**. The marketplace root is thin (manifest + meta-docs) and all plugin assets live under `plugins/spec-boundary-harness/`.
+
 ```
-.claude/
-  commands/spec-harness.md         Slash command for /spec-harness
-  skills/spec-harness/SKILL.md     Detailed skill (Phase 1/2/3 procedure)
-  agents/                          Optional read-only second-opinion reviewers
-prompts/
-  claude-analyzer.md               Phase 1 — what Claude must produce
-  codex-validator.md               Phase 2 — what Codex must check (8 validators)
-  claude-finalizer.md              Phase 3 — how Claude triages findings
-schemas/
-  codex-validation-report.schema.json   JSON Schema enforced via codex --output-schema
-profiles/
-  flutter-riverpod-openapi.yaml    Example profile
-rules/
-  boundary-rules.yaml              L0–L4 model
-  endpoint-rules.yaml
-  screen-state-rules.yaml
-  security-rules.yaml
-  flutter-profile-rules.yaml
-scripts/
-  codex-validate.sh                Codex invocation (read-only, schema-enforced)
-src/
-  schemas/                         Zod schemas for validation reports + triage
-  validate/zod-only.ts             Preflight: file presence + YAML parse
-  cli/                             init | detect | list | validate | help
-  llm/render-validation-md.mjs     Report JSON → human-readable Markdown
-bin/spec-harness.mjs               CLI launcher
-inputs/                            Your feature bundles
-examples/auth-login/               Bundled sample
-specs/<feature-id>/                Generated artifacts
-reports/                           Validation, triage, final reports
-tests/                             vitest schema + zod-only checks
+spec-boundary-harness/                          ← repo root = marketplace
+├── .claude-plugin/marketplace.json             ← marketplace manifest (lists the plugin)
+├── README.md, CHANGELOG.md, LICENSE
+└── plugins/
+    └── spec-boundary-harness/                  ← the actual plugin
+        ├── .claude-plugin/plugin.json          ← plugin manifest
+        ├── .claude/
+        │   ├── commands/spec-harness.md        Slash command for /spec-harness
+        │   ├── skills/spec-harness/SKILL.md    Detailed pipeline procedure
+        │   └── agents/                         Read-only second-opinion reviewers
+        ├── commands/, skills/, agents/         Mirrors of .claude/ at the standard plugin layout
+        ├── prompts/
+        │   ├── claude-analyzer.md              Phase 1
+        │   ├── codex-validator.md              Phase 2 (8 validators)
+        │   └── claude-finalizer.md             Phase 3
+        ├── schemas/codex-validation-report.schema.json
+        ├── profiles/flutter-riverpod-openapi.yaml
+        ├── rules/                              L0–L4 model + endpoint/screen/security/flutter rules
+        ├── scripts/
+        │   ├── codex-validate.sh               Codex invocation (read-only)
+        │   ├── codex-meta-review.sh            Meta review of the harness itself
+        │   ├── spec-harness.sh                 Wrapper (locates install + lazy npm install)
+        │   └── sync-plugin-locations.sh        Keeps .claude/ and standard locations in sync
+        ├── src/                                Zod schemas + preflight + CLI + renderer
+        ├── bin/spec-harness.mjs                CLI launcher
+        ├── examples/auth-login, review.create  Bundled samples
+        ├── specs/, reports/                    Sample artifacts from past runs
+        └── tests/                              vitest schema + zod-only + detect tests
 ```
+
+Why two locations for commands/skills/agents? Claude Code's plugin loader looks for `commands/`, `skills/`, `agents/` at the plugin root, while project-local convention uses `.claude/commands/` etc. The standard locations are checked-in copies maintained by `scripts/sync-plugin-locations.sh`; `.claude/` is the source of truth.
 
 ## CLI reference
 

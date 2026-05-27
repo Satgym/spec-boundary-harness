@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-05-27
+
+Restructure the repo into the standard Claude Code marketplace layout: `plugins/<name>/` subdirectory + path-form `source`. This is the most portable form across Claude Code versions and avoids SSH cloning entirely.
+
+### Why
+- `"."` (0.3.0/0.3.3) — "source type your Claude Code version does not support"
+- `{"source": "github", "repo": ...}` (0.3.1, 0.3.4) — accepted by the manifest parser **but Claude Code clones with SSH** (`git@github.com:...`); fails for users without a GitHub SSH key (`Permission denied (publickey)`)
+- `{"source": "git", "url": "https://..."}` (0.3.2) — "source type your Claude Code version does not support"
+
+The remaining standard form is a **relative path source**, which requires the plugin files to live in a subdirectory of the marketplace. That is what this release does.
+
+### Changed
+- All plugin assets moved into `plugins/spec-boundary-harness/`:
+  - `.claude/`, `commands/`, `skills/`, `agents/`, `bin/`, `src/`, `scripts/`, `prompts/`, `rules/`, `profiles/`, `schemas/`, `tests/`, `examples/`, `evals/`, `docs/`, `specs/`, `reports/`, `package.json`, `tsconfig.json`, `vitest.config.ts`, `ASSUMPTIONS.md`, `CLAUDE.md`
+  - `.claude-plugin/plugin.json` → `plugins/spec-boundary-harness/.claude-plugin/plugin.json`
+- `marketplace.json` plugin `source` is now `"./plugins/spec-boundary-harness"` (path form).
+- Sample input bundle `inputs/review.create/` → `plugins/spec-boundary-harness/examples/review.create/`.
+
+### Unchanged
+- The wrapper script (`scripts/spec-harness.sh`) already had `marketplaces/*/plugins/spec-boundary-harness` in its candidate path list from v0.3.3, so it picks up the new layout without modification.
+- Slash command and skill inline lookup snippets use the same candidate list.
+- `--root` still defaults to `$CLAUDE_PROJECT_DIR` or `$PWD`, so user-project artifacts go to the user's project, not into the plugin install.
+
+### Install / re-install
+
+Users who hit the SSH or source-type errors on 0.3.x should:
+
+1. **Manage Plugins → Marketplaces** → remove the existing `spec-boundary-harness` row.
+2. Re-add `https://github.com/Satgym/spec-boundary-harness.git`.
+3. **Plugins** tab → **Install**.
+
+No SSH key, no `ssh-keyscan`, no `--output-schema` quirks — the marketplace is fetched over HTTPS (already true since 0.3.x) and the plugin is now a relative path inside that same fetched repo, so no second clone is attempted.
+
 ## [0.3.4] — 2026-05-27
 
 Revert the plugin `source` form to the `github` shorthand. Users on otherwise-up-to-date Claude Code builds reported the `{"source": "git", "url": "..."}` form (introduced in 0.3.2) as **"This plugin uses a source type your Claude Code version does not support."** The `github` shorthand was the only form known to be recognised across all the builds we tested.
