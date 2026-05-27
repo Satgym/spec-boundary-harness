@@ -1,6 +1,6 @@
 {
   "name": "spec-boundary-harness",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Heterogeneous LLM cross-validation for feature planning. Claude analyzes inputs and writes 11 boundary contracts; Codex re-reads everything in --sandbox read-only and validates in one pass; Claude triages findings and applies safe fixes.",
   "author": {
     "name": "Satgym",

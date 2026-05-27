@@ -39,11 +39,22 @@ export async function validateCommand(opts: ValidateOptions): Promise<ValidateRe
   }
 
   // 2) Invoke Codex via the bash wrapper (read-only).
-  const script = path.join(rootDir, "scripts", "codex-validate.sh");
+  // codex-validate.sh lives in the plugin install, not in the user's project,
+  // so we resolve it relative to this CLI module (which is under the plugin
+  // directory) — not relative to rootDir.
+  const { fileURLToPath } = await import("node:url");
+  const pluginRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    ".."
+  );
+  const script = path.join(pluginRoot, "scripts", "codex-validate.sh");
   const codex = await new Promise<number>((resolve) => {
     const child = spawn("bash", [script, inputDir, featureId], {
+      // cwd stays the user project so reports/ and specs/ are written there.
       cwd: rootDir,
       stdio: "inherit",
+      // ROOT_DIR is the user's project; the bash wrapper writes outputs there.
       env: { ...process.env, ROOT_DIR: rootDir },
     });
     child.on("exit", (c) => resolve(c ?? 1));

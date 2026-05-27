@@ -13,15 +13,21 @@
 
 set -u
 
-ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+# PLUGIN_ROOT = where this script and the prompts/schemas live.
+# PROJECT_ROOT = where the user's inputs and outputs live.
+# These were merged into a single ROOT_DIR before v0.6.1, which broke when
+# the script was called from a user project that doesn't contain the plugin.
+PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="${ROOT_DIR:-$PLUGIN_ROOT}"
+
 INPUT_DIR="${1:?usage: $0 <inputDir> <featureId>}"
 FEATURE_ID="${2:?usage: $0 <inputDir> <featureId>}"
 
-PROMPT_FILE="$ROOT_DIR/prompts/codex-validator.md"
-SCHEMA_FILE="$ROOT_DIR/schemas/codex-validation-report.schema.json"
-OUTPUT_JSON="$ROOT_DIR/reports/codex-validation-report.json"
-OUTPUT_MD="$ROOT_DIR/reports/codex-validation-report.md"
-LOG_FILE="$ROOT_DIR/reports/.codex-validate.log"
+PROMPT_FILE="$PLUGIN_ROOT/prompts/codex-validator.md"
+SCHEMA_FILE="$PLUGIN_ROOT/schemas/codex-validation-report.schema.json"
+OUTPUT_JSON="$PROJECT_ROOT/reports/codex-validation-report.json"
+OUTPUT_MD="$PROJECT_ROOT/reports/codex-validation-report.md"
+LOG_FILE="$PROJECT_ROOT/reports/.codex-validate.log"
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
 write_skip() {
@@ -58,7 +64,7 @@ if [ ! -f "$SCHEMA_FILE" ]; then
   write_skip "Missing schema: $SCHEMA_FILE"
   exit 0
 fi
-if [ ! -d "$ROOT_DIR/specs/$FEATURE_ID" ]; then
+if [ ! -d "$PROJECT_ROOT/specs/$FEATURE_ID" ]; then
   write_skip "No specs/$FEATURE_ID directory; nothing to validate"
   exit 0
 fi
@@ -105,14 +111,24 @@ fi
 
 CD_FLAG=""
 if echo "$CODEX_HELP" | grep -q -- "--cd"; then
-  CD_FLAG="--cd $ROOT_DIR"
+  CD_FLAG="--cd $PROJECT_ROOT"
 fi
 
 USER_BODY="
 Inputs:
 - Input directory: $INPUT_DIR
 - Feature id: $FEATURE_ID
-- Spec artifacts: $ROOT_DIR/specs/$FEATURE_ID/
+- Spec artifacts: $PROJECT_ROOT/specs/$FEATURE_ID/
+- Project root (user's project): $PROJECT_ROOT
+- Plugin root (where profiles/<…>.yaml and rules/*.yaml live): $PLUGIN_ROOT
+
+The 'profile' and 'rules' files referenced in the prompt under 'What to read'
+live inside the PLUGIN root, not the project root. Use the explicit paths:
+
+- Profile: $PLUGIN_ROOT/profiles/flutter-riverpod-openapi.yaml (or the file referenced by inputs/<feature>/profile.yaml if present in the input directory)
+- Rules: $PLUGIN_ROOT/rules/boundary-rules.yaml, $PLUGIN_ROOT/rules/endpoint-rules.yaml, $PLUGIN_ROOT/rules/screen-state-rules.yaml, $PLUGIN_ROOT/rules/security-rules.yaml, $PLUGIN_ROOT/rules/flutter-profile-rules.yaml
+
+The user's project ($PROJECT_ROOT) only contains inputs/ + specs/<feature>/ + reports/ + .archive/. It is normal for profiles/ and rules/ to be absent there. Do NOT flag their absence in the user project as a finding.
 
 Read all the files listed in the prompt under 'What to read', then apply all eight validators in a single pass.
 
@@ -153,7 +169,7 @@ fi
 
 # Validate JSON syntax with node (we already depend on it).
 if ! printf '%s' "$JSON_BODY" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{JSON.parse(s)}catch(e){process.exit(2)}})" ; then
-  cp "$LOG_FILE" "$ROOT_DIR/reports/.codex-validate.raw.log"
+  cp "$LOG_FILE" "$PROJECT_ROOT/reports/.codex-validate.raw.log"
   write_skip "Codex output was not valid JSON; raw log saved to reports/.codex-validate.raw.log"
   exit 0
 fi
@@ -162,7 +178,7 @@ fi
 printf '%s' "$JSON_BODY" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const j=JSON.parse(s);process.stdout.write(JSON.stringify(j,null,2)+'\n')})" > "$OUTPUT_JSON"
 
 # Render a human-readable mirror.
-node "$ROOT_DIR/src/llm/render-validation-md.mjs" "$OUTPUT_JSON" > "$OUTPUT_MD" 2>>"$LOG_FILE" || {
+node "$PLUGIN_ROOT/src/llm/render-validation-md.mjs" "$OUTPUT_JSON" > "$OUTPUT_MD" 2>>"$LOG_FILE" || {
   cp "$OUTPUT_JSON" "$OUTPUT_MD"
 }
 

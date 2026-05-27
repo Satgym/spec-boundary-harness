@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] — 2026-05-28
+
+Discovered during autonomous round 1 of the autorun improvement loop. Two critical bugs that broke `validate` when the plugin was actually installed (vs cloned in dev). Both already fixed in code; the loop continues.
+
+### Fixed
+
+- **`scripts/codex-validate.sh` and `src/cli/validate.ts`**: `ROOT_DIR` was being used for both the plugin install location (where prompts/schemas live) and the user project (where reports/specs live). When the harness is installed as a Claude Code plugin and called from a user project, the script could not find its own prompt/schema files. Split into `PLUGIN_ROOT` (script's parent) and `PROJECT_ROOT` (`$ROOT_DIR`, the user's project).
+- **`scripts/codex-validate.sh`**: When Codex was launched with `--cd $PROJECT_ROOT`, the validator prompt's references to `profiles/<…>.yaml` and `rules/*.yaml` resolved against the user project — which doesn't contain those files. The Codex validator now receives the explicit `$PLUGIN_ROOT` path in the user body and is told that `profiles/` and `rules/` live there, with a note that absence from the user project is normal.
+
+### Notes
+
+Both bugs were undiscovered because the harness was previously only exercised from inside the marketplace repo itself, where the two locations happen to coincide. The autorun loop in `/tmp/sbh-autorun-1/` exposed them on the first real Codex call.
+
 ## [0.6.0] — 2026-05-27
 
 Cross-section consistency hardening, based on integration-failure feedback from the `sbh-test` reservation-modify run. Two P0 defects (M1, M2) and three P1/P2 weaknesses identified by an isolated-FE-vs-isolated-BE round-trip test are now closed. See `HARNESS_FIX_PROMPT.md` in the upstream repo for the full root-cause writeup.
