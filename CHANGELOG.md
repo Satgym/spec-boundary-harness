@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-05-27
+
+### Fixed
+- Plugin `source` in `marketplace.json` is now `{"source": "git", "url": "https://github.com/Satgym/spec-boundary-harness.git"}`. The previous `"source": "github"` form caused Claude Code to attempt an SSH clone (`git@github.com:...`), which fails on machines that have not yet accepted GitHub's SSH host key (`No ED25519 host key is known for github.com`). The explicit HTTPS URL bypasses SSH entirely.
+
+### Notes
+- If you previously hit either of these install errors, run `Manage Plugins → Marketplaces → spec-boundary-harness → Update` (or the equivalent CLI command in a Claude Code session that supports `/plugin`), then `Install` again. The slash command `/plugin` itself is only available in certain Claude Code environments (the desktop app and recent CLIs); the **Manage Plugins** GUI works everywhere it's exposed.
+
 ## [0.3.1] — 2026-05-27
 
 ### Fixed

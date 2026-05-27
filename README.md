@@ -39,26 +39,45 @@ Without Codex, Phase 1 still runs but validation is skipped and the harness exit
 
 ### Troubleshooting install
 
-If `/plugin install spec-boundary-harness` fails with
-**"This plugin uses a source type your Claude Code version does not support"**:
+#### "This plugin uses a source type your Claude Code version does not support"
 
-1. **Refresh the marketplace first**:
-   ```text
-   /plugin marketplace update Satgym/spec-boundary-harness
-   ```
-   then retry the install. The marketplace manifest is now in the GitHub-object source form, which is more widely supported.
-2. **Update Claude Code** (the error message recommends this). Some older builds don't recognise the newer `source` formats.
-3. **Manual install as a fallback** — clone the repo somewhere and use the wrapper directly:
-   ```bash
-   git clone https://github.com/Satgym/spec-boundary-harness.git ~/spec-boundary-harness
-   cd ~/spec-boundary-harness && npm install
-   ```
-   Then run the wrapper from your project directory:
-   ```bash
-   bash ~/spec-boundary-harness/scripts/spec-harness.sh detect
-   bash ~/spec-boundary-harness/scripts/spec-harness.sh validate inputs/<feature> <feature>
-   ```
-   The slash command in this mode is not registered with Claude Code, but you can paste the contents of `~/spec-boundary-harness/.claude/commands/spec-harness.md` as a prompt to drive the same pipeline.
+1. **Refresh the marketplace first** (in the **Manage Plugins → Marketplaces** GUI, click the marketplace and choose Update; or in a Claude Code session that supports it: `/plugin marketplace update Satgym/spec-boundary-harness`).
+2. Then click **Install** again.
+
+The marketplace manifest is now in the `git` source form with an explicit HTTPS URL, which bypasses SSH entirely and is supported across a wider range of Claude Code versions.
+
+#### "Host key verification failed" / "No ED25519 host key is known for github.com"
+
+Cause: Claude Code tried to clone the plugin over SSH (`git@github.com:...`) but your `~/.ssh/known_hosts` does not yet trust github.com.
+
+Two ways to fix:
+- **Update the marketplace** as above. v0.3.2+ uses an HTTPS clone URL, so SSH is no longer touched.
+- Or, one-time, add github.com to your SSH known hosts:
+  ```bash
+  ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+  ```
+
+#### `/plugin isn't available in this environment`
+
+Some Claude Code surfaces (notably the IDE side-panel) don't expose the `/plugin` slash command. Use the **Manage Plugins** GUI instead (Settings → Plugins, or the dialog shown in the install error). The GUI calls the same underlying CLI.
+
+#### Last resort — manual install
+
+If marketplace install keeps failing, clone the repo directly:
+
+```bash
+git clone https://github.com/Satgym/spec-boundary-harness.git ~/spec-boundary-harness
+cd ~/spec-boundary-harness && npm install
+```
+
+Then run the wrapper from your project directory:
+
+```bash
+bash ~/spec-boundary-harness/scripts/spec-harness.sh detect
+bash ~/spec-boundary-harness/scripts/spec-harness.sh validate inputs/<feature> <feature>
+```
+
+The slash command in this mode is not registered with Claude Code, but you can paste the contents of `~/spec-boundary-harness/.claude/commands/spec-harness.md` as a prompt to drive the same pipeline.
 
 ## Why
 
