@@ -1,0 +1,103 @@
+paths:
+  /reviews:
+    post:
+      x-status: confirmed
+      summary: 본인 구매 상품에 리뷰 작성
+      operationId: postReviews
+      tags: [reviews]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "400":
+          description: 입력 형식 오류 또는 콘텐츠 정책 위반
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewError"
+        "401":
+          description: 미인증
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewError"
+        "403":
+          description: 본인이 구매한 상품이 아님
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewError"
+        "409":
+          description: 이미 작성한 리뷰가 존재
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewError"
+        "500":
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewError"
+
+components:
+  schemas:
+    ReviewRequest:
+      type: object
+      required: [product_id, rating, text]
+      properties:
+        product_id:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+        photo_id:
+          # v1 확정 아님. proposal로 표시; v1에서 클라이언트는 이 필드를 전송하지 않는다.
+          type: string
+          nullable: true
+          x-status: proposal
+
+    Review:
+      type: object
+      required: [id, product_id, user_id, rating, text, created_at]
+      properties:
+        id: { type: string }
+        product_id: { type: string }
+        user_id: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        text: { type: string, minLength: 1, maxLength: 500 }
+        photo_id: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    ReviewError:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum:
+            - invalid_input
+            - content_policy_violation
+            - unauthenticated
+            - not_a_purchaser
+            - duplicate_review
+            - server_error
+        message:
+          type: string
+          nullable: true

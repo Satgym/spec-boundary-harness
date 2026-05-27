@@ -21,6 +21,29 @@ describe("CodexFindingSchema", () => {
     });
     expect(parsed.validator).toBe("boundary-violation");
   });
+  it("rejects a finding missing nullable keys (strict parity)", () => {
+    const result = CodexFindingSchema.safeParse({
+      id: "BV-01",
+      validator: "boundary-violation",
+      severity: "high",
+      message: "missing nullable keys",
+    });
+    expect(result.success).toBe(false);
+  });
+  it("rejects a finding with an extra unknown property", () => {
+    const result = CodexFindingSchema.safeParse({
+      id: "BV-01",
+      validator: "boundary-violation",
+      severity: "high",
+      feature_id: null,
+      artifact: null,
+      message: "x",
+      evidence: null,
+      suggested_fix: null,
+      sneaky: 1,
+    });
+    expect(result.success).toBe(false);
+  });
   it("rejects an unknown validator name", () => {
     const result = CodexFindingSchema.safeParse({
       id: "X-01",
@@ -41,19 +64,75 @@ describe("CodexFindingSchema", () => {
   });
 });
 
-describe("CodexValidationReportSchema", () => {
-  it("accepts the minimum shape", () => {
+describe("generated_at must parse as a real timestamp (META-09 regression)", () => {
+  it("rejects a non-parseable timestamp", () => {
+    const result = CodexValidationReportSchema.safeParse({
+      generated_at: "not-a-date",
+      feature_id: null,
+      input_summary: "x",
+      findings: [],
+      notes: null,
+    });
+    expect(result.success).toBe(false);
+  });
+  it("accepts ISO 8601 with Z suffix", () => {
+    const result = CodexValidationReportSchema.safeParse({
+      generated_at: "2026-05-27T00:00:00Z",
+      feature_id: null,
+      input_summary: "x",
+      findings: [],
+      notes: null,
+    });
+    expect(result.success).toBe(true);
+  });
+  it("accepts ISO 8601 with timezone offset (Codex format)", () => {
+    const result = CodexValidationReportSchema.safeParse({
+      generated_at: "2026-05-27T11:53:43+09:00",
+      feature_id: null,
+      input_summary: "x",
+      findings: [],
+      notes: null,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("CodexValidationReportSchema (strict, mirrors JSON Schema)", () => {
+  it("accepts a complete report with nulls", () => {
     const r = CodexValidationReportSchema.parse({
       generated_at: "2026-05-27T00:00:00Z",
+      feature_id: null,
       input_summary: "Read PRD and transcript.",
       findings: [],
+      notes: null,
     });
     expect(r.findings).toEqual([]);
+  });
+  it("rejects a report missing nullable keys (META-02 regression)", () => {
+    const result = CodexValidationReportSchema.safeParse({
+      generated_at: "x",
+      input_summary: "y",
+      findings: [],
+    });
+    expect(result.success).toBe(false);
   });
   it("rejects when findings is missing", () => {
     const result = CodexValidationReportSchema.safeParse({
       generated_at: "x",
+      feature_id: null,
       input_summary: "y",
+      notes: null,
+    });
+    expect(result.success).toBe(false);
+  });
+  it("rejects extra keys at the top level (.strict())", () => {
+    const result = CodexValidationReportSchema.safeParse({
+      generated_at: "x",
+      feature_id: null,
+      input_summary: "y",
+      findings: [],
+      notes: null,
+      extra: "should be rejected",
     });
     expect(result.success).toBe(false);
   });

@@ -43,11 +43,11 @@ Brief the user: "Phase 1 done — 11 artifacts written to `specs/<FEATURE_ID>/`.
 
 ## Step 2 — Phase 2: Validate (you call Codex)
 
-Run:
+Always pass the resolved `INPUT_DIR` and `FEATURE_ID` explicitly to avoid ambiguity when multiple bundles exist:
+
 ```bash
-node ./bin/spec-harness.mjs validate
+node ./bin/spec-harness.mjs validate <INPUT_DIR> <FEATURE_ID>
 ```
-(no arguments — uses auto-detection; or pass `<FEATURE_ID>` explicitly if multiple bundles exist).
 
 If exit code is non-zero, stop and report the issue. Common causes:
 - Codex CLI unavailable
@@ -63,7 +63,7 @@ If exit code is 0, brief the user with the finding counts from `reports/codex-va
    - **Accept** if the fix is local and safe (move a misclassified item, add a missing state, change READY → BLOCKED, add a missing security warning, add `security: [...]` to an auth endpoint). Apply the change via Edit.
    - **Reject** if the finding is wrong (false positive) or accepting would violate a non-negotiable principle. Record the reason.
    - **Needs human decision** if the change requires a product / scope decision. Do not auto-apply.
-3. After applying all accepted fixes, **re-run** `node ./bin/spec-harness.mjs validate`. Repeat triage if new findings appear. Cap at 3 iterations; if findings keep recurring, stop and surface the issue to the user.
+3. After applying all accepted fixes, **re-run** `node ./bin/spec-harness.mjs validate <INPUT_DIR> <FEATURE_ID>` with the same arguments resolved in Step 0. Repeat triage if new findings appear. Cap at 3 iterations; if findings keep recurring, stop and surface the issue to the user.
 4. Write:
    - `reports/codex-triage.md`
    - Overwrite `specs/<FEATURE_ID>/11-validation-summary.md`

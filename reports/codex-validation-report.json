@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-27T10:46:13+09:00",
-  "feature_id": "auth.login",
-  "input_summary": "Read the auth.login input directory, including profile.yaml, PRD, PLAUD transcript/summary, endpoint notes, and design notes; the repo-wide flutter-riverpod-openapi profile and all boundary, endpoint, screen-state, security, and Flutter profile rules; and specs/auth.login artifacts 01 through 11. The feature covers confirmed email/password login via POST /auth/login, with Kakao/refresh/me endpoints treated as unresolved or out of scope, and the transcript prompt-injection phrase recorded as a high-severity security warning.",
+  "generated_at": "2026-05-27T12:00:09+09:00",
+  "feature_id": "review.create",
+  "input_summary": "Read the full review.create input set under inputs/review.create, the feature/profile and repo-wide rules, and all 11 artifacts under specs/review.create. The feature is a Flutter/Riverpod review creation flow with POST /reviews; notable context includes a high-severity prompt-injection/security warning in the transcript, which is recorded in the conflicts artifact and reflected by BLOCKED frontend/backend packets.",
   "findings": [],
-  "notes": "No validation findings. The unresolved high-severity Kakao/social-login conflict is correctly reflected by BLOCKED frontend and backend packets, and the prompt-injection occurrence is captured under Security Warnings."
+  "notes": null
 }

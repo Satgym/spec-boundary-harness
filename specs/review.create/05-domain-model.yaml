@@ -1,0 +1,36 @@
+feature_id: review.create
+entities:
+  - id: Review
+    fields:
+      - { name: id, type: string, required: true, notes: "서버 생성 ULID/UUID. 클라이언트가 결정하지 않는다." }
+      - { name: product_id, type: string, required: true, notes: "리뷰 대상 상품의 id" }
+      - { name: user_id, type: string, required: true, notes: "리뷰 작성자. 서버가 인증 토큰에서 도출하며, 클라이언트가 전달하지 않는다." }
+      - { name: rating, type: integer, required: true, notes: "1..5 정수. 서버에서도 재검증" }
+      - { name: text, type: string, required: true, notes: "1..500자. 서버에서 길이/콘텐츠 정책 검사" }
+      - { name: photo_id, type: string, required: false, notes: "v1 proposal. 본 feature 범위에서는 null/미사용" }
+      - { name: created_at, type: string, required: true, notes: "ISO-8601, 서버 생성" }
+    source_refs:
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 18, end: 27 }
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 13, end: 17 }
+
+  - id: ReviewRequest
+    fields:
+      - { name: product_id, type: string, required: true, notes: "" }
+      - { name: rating, type: integer, required: true, notes: "1..5" }
+      - { name: text, type: string, required: true, notes: "1..500" }
+      - { name: photo_id, type: string, required: false, notes: "proposal — v1에서 클라이언트는 보내지 않는다" }
+    source_refs:
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 8, end: 16 }
+
+  - id: ReviewError
+    fields:
+      - { name: code, type: string, required: true, notes: "enum: invalid_input | content_policy_violation | unauthenticated | not_a_purchaser | duplicate_review | server_error" }
+      - { name: message, type: string, required: false, notes: "사용자 노출용 메시지 후보. UI는 자체 문구를 우선 사용하되 서버 메시지를 부가로 노출할 수 있다." }
+    source_refs:
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 32, end: 37 }   # 응답 (실패) 섹션 — 400/401/403/409/5xx
+
+assumptions:
+  - id: Review.created_at
+    text: "created_at 필드는 PRD에 명시되지 않지만, 리뷰 정렬/표시 시 필요한 일반 모범사례이므로 포함했다. 백엔드 스키마 확정 시 형식이 변경될 수 있다."
+    source_refs:
+      - { doc: plaud/summary.md, anchor: action-items, start: 25, end: 25 }

@@ -1,0 +1,17 @@
+feature_id: review.create
+events:
+  - id: review.create.event.audit_review_attempt
+    trigger: POST /reviews 처리 시 (성공/실패 모두)
+    layer: L4
+    description: 리뷰 작성 시도 감사 로그. 권한/중복/콘텐츠 정책 위반 등 거부 사유와 함께 기록한다. 신고/이상 탐지에 사용.
+    source_refs:
+      - { doc: plaud/transcript.md, anchor: null, start: 38, end: 38 }   # 작년 신고 많이 들어왔다는 PM 언급
+    assumption: true
+
+  - id: review.create.event.review_created
+    trigger: 리뷰 생성 성공 시
+    layer: L4
+    description: 리뷰가 영속화된 후 다른 도메인(상품 평균 평점, 검색 인덱스, 알림)이 구독할 수 있도록 도메인 이벤트 발행.
+    source_refs:
+      - { doc: prd/review.md, anchor: 7-범위-외, start: 49, end: 53 }  # 본 feature 범위 외 (조회/수정/삭제/평균 평점)이지만 후속 feature가 본 이벤트에 의존할 수 있음
+    assumption: true

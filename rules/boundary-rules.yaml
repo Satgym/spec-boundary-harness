@@ -1,6 +1,10 @@
 id: boundary-rules
 description: |
-  Core L0–L4 boundary rules. Validators enforce these deterministically.
+  Core L0–L4 boundary rules.
+  These are consumed as LLM prompt context (Claude analyzer + Codex validator),
+  not parsed by the CLI. The CLI only enforces file presence, YAML parse, and
+  Codex JSON shape. Boundary judgments are LLM decisions cross-checked between
+  Claude (Phase 1) and Codex (Phase 2). See README.md "Architecture" section.
 layers:
   L0:
     label: Presentation / Design

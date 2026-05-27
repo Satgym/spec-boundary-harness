@@ -57,6 +57,22 @@ export async function validateCommand(opts: ValidateOptions): Promise<ValidateRe
     for (const issue of reportCheck.issues) summaryLines.push(`CODEX-REPORT: ${issue}`);
   }
 
+  // 3b) Codex wrapper exits 0 even when it skipped (e.g. codex CLI absent or
+  // unsafe flag combination). In that case the JSON's notes/input_summary
+  // contains "skipped" and findings is empty. Treat that as a validation
+  // failure rather than a quiet pass — see META-01.
+  let codexSkipped = false;
+  try {
+    const raw = await (await import("node:fs")).promises.readFile(reportPath, "utf8");
+    const parsed = JSON.parse(raw) as { notes?: string | null; input_summary?: string };
+    if (parsed.notes === "skipped" || /not invoked/i.test(parsed.input_summary ?? "")) {
+      codexSkipped = true;
+      summaryLines.push("CODEX-SKIPPED: validator did not actually run; see reports/codex-validation-report.md");
+    }
+  } catch {
+    // unreachable when reportCheck.ok is true; ignored otherwise
+  }
+
   // 4) Write preflight summary alongside Codex output for human consumption.
   const summaryPath = path.join(rootDir, "reports", "validate-preflight.md");
   await writeText(
@@ -71,7 +87,8 @@ export async function validateCommand(opts: ValidateOptions): Promise<ValidateRe
       "",
       `Missing artifacts: ${preflight.missing.length}`,
       `Unparseable YAML: ${preflight.unparseable.length}`,
-      `Codex invoked: ${codexInvoked}`,
+      `Codex wrapper exited 0: ${codexInvoked}`,
+      `Codex actually ran (not skipped): ${codexInvoked && !codexSkipped}`,
       `Codex report schema-valid: ${reportCheck.ok}`,
       "",
       "## Issues",
@@ -80,9 +97,9 @@ export async function validateCommand(opts: ValidateOptions): Promise<ValidateRe
     ].join("\n")
   );
 
-  const ok = preflight.ok && codexInvoked && reportCheck.ok;
+  const ok = preflight.ok && codexInvoked && reportCheck.ok && !codexSkipped;
   console.log(
-    `validate: preflight=${preflight.ok ? "ok" : "issues"} codex=${codexInvoked ? "ran" : "skipped"} report=${reportCheck.ok ? "schema-valid" : "schema-invalid"} ok=${ok}`
+    `validate: preflight=${preflight.ok ? "ok" : "issues"} codex=${codexSkipped ? "skipped" : codexInvoked ? "ran" : "failed"} report=${reportCheck.ok ? "schema-valid" : "schema-invalid"} ok=${ok}`
   );
   return {
     ok,
@@ -90,7 +107,7 @@ export async function validateCommand(opts: ValidateOptions): Promise<ValidateRe
       missing: preflight.missing.length,
       unparseable: preflight.unparseable.length,
     },
-    codexInvoked,
+    codexInvoked: codexInvoked && !codexSkipped,
     reportOk: reportCheck.ok,
     issues: summaryLines,
   };

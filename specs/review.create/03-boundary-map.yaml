@@ -1,0 +1,62 @@
+feature_id: review.create
+layers:
+  - layer: L0
+    label: Presentation / Design
+    items:
+      - "별도 페이지 /review/new?product_id=... 의 레이아웃 (헤더, 상품 카드, 별점, 텍스트, 제출 버튼) (source: design/design-notes.md:3-7, prd/review.md:21-22)"
+      - "RatingStars / ReviewTextArea / ErrorBanner / SuccessToast 등 디자인 시스템 컴포넌트 사용 (source: design/design-notes.md:11-15)"
+      - "별점 탭 시 즉시 채움 (presentation-only interaction; review.create.r7 관련)"
+      - "텍스트 입력 시 글자수 카운터 갱신 (presentation-only)"
+      - "성공 시 toast 노출 (review.create.r8)"
+    forbidden:
+      - 권한 검증, 비밀번호/토큰 처리, DB 접근, 외부 시크릿
+      - 욕설/비속어 필터링 (서버 책임)
+      - 결제/가격 계산
+      - 디자인 시스템 자체 수정 (본 feature와 별도 PR로 분리; source: design/design-notes.md:38-40, profile.frontend_allowed_files comment)
+
+  - layer: L1
+    label: Client Interaction / State
+    items:
+      - "폼 상태 — 별점/텍스트 값, validity (review.create.r6, r9)"
+      - "로컬 검증 — 빈 별점 / 빈 텍스트만 (review.create.r6; source: plaud/transcript.md:42-44)"
+      - "화면 상태 전이 — initial → loading → success / validation_error / permission_denied / duplicate / network_error (review.create.r9)"
+      - "POST /reviews 호출을 ReviewRepository 인터페이스 경유로 트리거 (review.create.r10)"
+      - "Mock repository + fixture JSON으로 6가지 상태 도달 가능성 확보 (review.create.a2)"
+      - "응답 코드 → UI 상태 매핑: 400 invalid_input → validation_error, 400 content_policy_violation → validation_error (with server message), 401 → permission_denied (재로그인 안내), 403 not_a_purchaser → permission_denied, 409 duplicate_review → duplicate, 5xx → network_error, 네트워크 실패 → network_error"
+    forbidden:
+      - 최종 보안 검증 (서버 권한)
+      - 욕설/비속어 본문 검사 (서버 권한)
+      - 비밀번호 / 토큰 서명, 직접 DB 접근
+      - 결제 / 가격 계산
+
+  - layer: L2
+    label: Contract / API Boundary
+    items:
+      - "POST /reviews 계약 — 인증 필수 (Bearer), request: {product_id, rating, text}, response: review object, errors: 400 / 401 / 403 / 409 / 5xx (source: endpoints/api-notes.md:5-33, review.create.r10)"
+      - "ReviewRequest / ReviewResponse / ReviewError DTO 정의"
+      - "에러 코드 매핑 명세 (L1 매핑표의 contract 측면; source: endpoints/api-notes.md:23-32)"
+      - "photo_id 필드는 OpenAPI 계약에 정의하지 않거나 nullable + x-status: proposal로 표시 (source: prd/review.md:46-51)"
+    forbidden:
+      - 비즈니스 규칙 결정
+      - DB 쿼리 구현
+
+  - layer: L3
+    label: Server Application / Domain
+    items:
+      - "권한 검증 — user × product 구매 이력 조회로 본인 구매 확인 (review.create.r3; source: endpoints/api-notes.md:61)"
+      - "중복 검증 — (user_id, product_id) 조합 review 중복 거부 (review.create.r4; source: endpoints/api-notes.md:62)"
+      - "콘텐츠 정책 검증 — 욕설/비속어 검수 (review.create.r5; source: endpoints/api-notes.md:63)"
+      - "서버 측 입력 형식 재검증 — rating 1..5, text 1..500 (서버는 클라이언트를 신뢰하지 않음; source: endpoints/api-notes.md:60)"
+      - "도메인 에러 → HTTP 매핑 — invalid_input=400, content_policy_violation=400, not_a_purchaser=403, duplicate_review=409"
+    forbidden:
+      - DOM 접근, presentation 로직
+
+  - layer: L4
+    label: Infrastructure / Background
+    items:
+      - "review 영속화 — DB INSERT (review.create.r4의 unique constraint 활용 가능)"
+      - "구매 이력 조회 — 주문/결제 도메인 데이터 read"
+      - "콘텐츠 정책 검수 백엔드 — 욕설 사전 + 추가 정책 엔진 호출 (review.create.r5; ASSUMPTION: 구체 구현은 백엔드 결정)"
+      - "(proposal) 사진 업로드 스토리지 — POST /uploads 도입 시. 본 feature에서는 사용하지 않음."
+    forbidden:
+      - presentation 로직

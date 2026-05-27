@@ -56,9 +56,11 @@ node ./bin/spec-harness.mjs init
 
 # Try the bundled sample (auth.login):
 node ./bin/spec-harness.mjs detect            # lists inputs/* and examples/*
-# In Claude Code or any Claude session with Bash, run the skill:
-/spec-harness
+# In Claude Code or any Claude session with Bash, run the skill with explicit args:
+/spec-harness examples/auth-login auth.login
 ```
+
+The no-argument form (`/spec-harness`) only works cleanly when exactly one input bundle is present. A fresh clone ships with both `examples/auth-login` and `inputs/review.create` (the meta-review test bundle), so you must pass arguments to disambiguate.
 
 For your own feature, drop a bundle under `inputs/<feature-id>/`:
 

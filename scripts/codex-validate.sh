@@ -77,20 +77,30 @@ else
   exit 0
 fi
 
+# META-03: require --output-schema AND --output-last-message; skip-closed
+# rather than fall back to log-scraping, which broke the strict structured-
+# output guarantee in the previous version.
 SCHEMA_FLAG=""
 if echo "$CODEX_HELP" | grep -q -- "--output-schema"; then
   SCHEMA_FLAG="--output-schema $SCHEMA_FILE"
-fi
-
-SKIP_GIT_FLAG=""
-if echo "$CODEX_HELP" | grep -q -- "--skip-git-repo-check"; then
-  SKIP_GIT_FLAG="--skip-git-repo-check"
+else
+  write_skip "codex exec lacks --output-schema; refusing to run without strict JSON enforcement"
+  exit 0
 fi
 
 LAST_MSG_FILE="$(mktemp)"
 OUTPUT_LAST_FLAG=""
 if echo "$CODEX_HELP" | grep -q -- "--output-last-message"; then
   OUTPUT_LAST_FLAG="--output-last-message $LAST_MSG_FILE"
+else
+  rm -f "$LAST_MSG_FILE"
+  write_skip "codex exec lacks --output-last-message; refusing to scrape transcript logs for JSON"
+  exit 0
+fi
+
+SKIP_GIT_FLAG=""
+if echo "$CODEX_HELP" | grep -q -- "--skip-git-repo-check"; then
+  SKIP_GIT_FLAG="--skip-git-repo-check"
 fi
 
 CD_FLAG=""
@@ -131,8 +141,9 @@ JSON_BODY=""
 if [ -s "$LAST_MSG_FILE" ]; then
   JSON_BODY="$(cat "$LAST_MSG_FILE")"
 else
-  # Best-effort scrape: find the largest JSON object in the log.
-  JSON_BODY="$(awk 'BEGIN{depth=0;buf=""} { for(i=1;i<=length($0);i++){c=substr($0,i,1); if(c=="{"){depth++} ; if(depth>0){buf=buf c}; if(c=="}"){depth--; if(depth==0 && length(buf)>2){print buf; buf=""}} } }' "$LOG_FILE" | awk '{ if (length($0) > maxlen) { maxlen=length($0); best=$0 } } END { print best }')"
+  # META-03: do not scrape transcript logs. Fail closed.
+  write_skip "Codex --output-last-message file is empty; refusing to scrape transcript. See $LOG_FILE"
+  exit 0
 fi
 
 if [ -z "$JSON_BODY" ]; then

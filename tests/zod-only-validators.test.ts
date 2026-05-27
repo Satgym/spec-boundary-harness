@@ -43,11 +43,14 @@ describe("checkArtifacts", () => {
     expect(r.unparseable.length).toBe(0);
     expect(r.ok).toBe(true);
   });
-  it("reports unparseable YAML", async () => {
+  it("reports unparseable YAML with the offending file path (META-08 regression)", async () => {
     const dir = path.join(TMP, "broken-yaml");
     await fs.mkdir(dir, { recursive: true });
+    // Construct YAML that the `yaml` library actually rejects: a block
+    // mapping value indented less than the key, with mixed indent tab.
+    const malformed = "feature: x\nrequirements:\n  - id: a\n\tname: tab-mix\n";
     const stubs: Record<string, string> = {
-      "01-requirements.yaml": "feature: x\nrequirements:\n  - id: bad\n  : oops\n",
+      "01-requirements.yaml": malformed,
       "02-conflicts-and-questions.md": "# x\n",
       "03-boundary-map.yaml": "feature_id: x\nlayers: []\n",
       "04-screen-state-spec.md": "# x\n",
@@ -62,12 +65,11 @@ describe("checkArtifacts", () => {
     for (const [name, body] of Object.entries(stubs)) {
       await fs.writeFile(path.join(dir, name), body, "utf8");
     }
-    // The YAML library is lenient on duplicate keys but errors on the
-    // truly malformed token `\n  : oops`. We assert "unparseable OR missing 0"
-    // — the contract is: anything wrong is reported.
     const r = await checkArtifacts(dir);
     expect(r.missing.length).toBe(0);
-    expect(r.unparseable.length).toBeGreaterThanOrEqual(0);
+    expect(r.unparseable.length).toBeGreaterThan(0);
+    expect(r.unparseable.some((u) => u.path.endsWith("01-requirements.yaml"))).toBe(true);
+    expect(r.ok).toBe(false);
   });
 });
 
@@ -88,14 +90,16 @@ describe("checkCodexReport", () => {
     const r = await checkCodexReport(f);
     expect(r.ok).toBe(false);
   });
-  it("accepts a valid empty report", async () => {
+  it("accepts a valid empty report (strict, all nullable keys present)", async () => {
     const f = path.join(TMP, "good.json");
     await fs.writeFile(
       f,
       JSON.stringify({
         generated_at: "2026-05-27T00:00:00Z",
+        feature_id: null,
         input_summary: "ok",
         findings: [],
+        notes: null,
       }),
       "utf8"
     );
@@ -116,13 +120,48 @@ describe("checkCodexReport", () => {
             validator: "prompt-injection",
             severity: "high",
             feature_id: "auth.login",
+            artifact: null,
             message: "Transcript contains injection.",
+            evidence: null,
+            suggested_fix: null,
           },
         ],
+        notes: null,
       }),
       "utf8"
     );
     const r = await checkCodexReport(f);
     expect(r.ok).toBe(true);
+  });
+  it("rejects a report missing nullable keys (META-02 regression)", async () => {
+    const f = path.join(TMP, "missing-nullable.json");
+    await fs.writeFile(
+      f,
+      JSON.stringify({
+        generated_at: "x",
+        input_summary: "y",
+        findings: [],
+      }),
+      "utf8"
+    );
+    const r = await checkCodexReport(f);
+    expect(r.ok).toBe(false);
+  });
+  it("rejects a report with an extra unknown top-level key", async () => {
+    const f = path.join(TMP, "extra-key.json");
+    await fs.writeFile(
+      f,
+      JSON.stringify({
+        generated_at: "x",
+        feature_id: null,
+        input_summary: "y",
+        findings: [],
+        notes: null,
+        extra: 1,
+      }),
+      "utf8"
+    );
+    const r = await checkCodexReport(f);
+    expect(r.ok).toBe(false);
   });
 });

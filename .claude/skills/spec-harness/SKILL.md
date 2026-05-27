@@ -63,13 +63,11 @@ Brief the user: "Phase 1 done — 11 artifacts written to `specs/<FEATURE_ID>/`.
 
 ## Phase 2 — External validation (you call Codex)
 
-Run:
+Always pass the resolved `INPUT_DIR` and `FEATURE_ID` explicitly so the run is reproducible even when multiple bundles exist:
 
 ```bash
-node ./bin/spec-harness.mjs validate
+node ./bin/spec-harness.mjs validate <INPUT_DIR> <FEATURE_ID>
 ```
-
-(No arguments — auto-detects. Or pass `<FEATURE_ID>` to disambiguate if multiple bundles exist.)
 
 The wrapper:
 
@@ -95,7 +93,7 @@ If exit code is 0, brief the user with the finding counts and continue.
    - **Accept** — local, safe fix (re-categorize a requirement, add a missing state, change `READY` → `BLOCKED`, add a security warning, fix `security: []` on an auth endpoint, etc). Apply via Edit.
    - **Reject** — finding is wrong, or accepting would violate a non-negotiable principle. Record the reason.
    - **Needs human decision** — structural / scope / product decision. Do not auto-apply.
-3. After accepted fixes, **re-run** `node ./bin/spec-harness.mjs validate`. Repeat the triage loop. **Cap at 3 iterations.** If findings keep recurring at iteration 3, stop and surface them.
+3. After accepted fixes, **re-run** `node ./bin/spec-harness.mjs validate <INPUT_DIR> <FEATURE_ID>` with the same arguments resolved in Step 0. Repeat the triage loop. **Cap at 3 iterations.** If findings keep recurring at iteration 3, stop and surface them.
 4. Write:
    - `reports/codex-triage.md`
    - Overwrite `specs/<FEATURE_ID>/11-validation-summary.md`

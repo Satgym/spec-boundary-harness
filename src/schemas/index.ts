@@ -7,40 +7,52 @@ export type Severity = z.infer<typeof Severity>;
 // The Codex CLI is invoked with --output-schema so the JSON it returns must
 // match this exact shape; the spec-harness CLI then re-validates with Zod
 // before Claude reads it.
-// Optional-or-null helper for fields that Codex's structured output mode
-// must include as explicit `null` (OpenAI strict mode requires every key in
-// `properties` to be listed in `required`).
-const nullableString = z.union([z.string(), z.null()]).optional();
+// Nullable required: every key must be present, but optional fields accept
+// `null`. This mirrors the JSON Schema's strict-mode contract — see META-02
+// in the meta-review. The Zod check is now exact-parity with the JSON Schema
+// the wrapper enforces; extra keys are rejected via `.strict()`.
+const nullableString = z.union([z.string(), z.null()]);
 
-export const CodexFindingSchema = z.object({
-  id: z.string(),
-  validator: z.enum([
-    "source-coverage",
-    "boundary-violation",
-    "endpoint-coverage",
-    "screen-state-coverage",
-    "openapi-patch",
-    "conflict-blocking",
-    "prompt-injection",
-    "packet-scope",
-    "other",
-  ]),
-  severity: Severity,
-  feature_id: nullableString,
-  artifact: nullableString,
-  message: z.string(),
-  evidence: nullableString,
-  suggested_fix: nullableString,
-});
+export const CodexFindingSchema = z
+  .object({
+    id: z.string(),
+    validator: z.enum([
+      "source-coverage",
+      "boundary-violation",
+      "endpoint-coverage",
+      "screen-state-coverage",
+      "openapi-patch",
+      "conflict-blocking",
+      "prompt-injection",
+      "packet-scope",
+      "other",
+    ]),
+    severity: Severity,
+    feature_id: nullableString,
+    artifact: nullableString,
+    message: z.string(),
+    evidence: nullableString,
+    suggested_fix: nullableString,
+  })
+  .strict();
 export type CodexFinding = z.infer<typeof CodexFindingSchema>;
 
-export const CodexValidationReportSchema = z.object({
-  generated_at: z.string(),
-  feature_id: nullableString,
-  input_summary: z.string(),
-  findings: z.array(CodexFindingSchema),
-  notes: nullableString,
-});
+// generated_at must parse as a valid date (loosely accepting RFC 3339 / ISO 8601
+// + common variants). META-09 in the meta-review flagged that the schema
+// accepted any string here.
+const isoTimestamp = z
+  .string()
+  .refine((v) => !Number.isNaN(Date.parse(v)), { message: "generated_at must be a parseable timestamp" });
+
+export const CodexValidationReportSchema = z
+  .object({
+    generated_at: isoTimestamp,
+    feature_id: nullableString,
+    input_summary: z.string(),
+    findings: z.array(CodexFindingSchema),
+    notes: nullableString,
+  })
+  .strict();
 export type CodexValidationReport = z.infer<typeof CodexValidationReportSchema>;
 
 // What Claude is supposed to write before calling the validator.

@@ -1,0 +1,145 @@
+feature: review.create
+title: 상품 리뷰 작성
+requirements:
+  - id: review.create.r1
+    text: 사용자는 본인이 구매한 상품에 대해 별점(1~5)과 텍스트 리뷰를 작성할 수 있다.
+    category: decision
+    owner_layer: L2
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 1-목적, start: 8, end: 8 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 5, end: 5 }
+
+  - id: review.create.r2
+    text: 별점은 1~5 정수. 텍스트는 최대 500자이며 빈 값은 허용하지 않는다.
+    category: decision
+    owner_layer: L2
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 12, end: 13 }
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 12, end: 16 }
+
+  - id: review.create.r3
+    text: 본인 구매 상품에만 리뷰 작성이 가능하다. 권한 검증은 서버가 user × product 구매 이력 조회로 수행한다.
+    category: decision
+    owner_layer: L3
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 14, end: 14 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 6, end: 6 }
+      - { doc: endpoints/api-notes.md, anchor: 서버-측-검증-순서, start: 61, end: 61 }
+
+  - id: review.create.r4
+    text: 한 사용자가 같은 상품에 두 번 이상 리뷰를 작성할 수 없다. 중복 검증은 서버에서 HTTP 409로 응답한다.
+    category: decision
+    owner_layer: L3
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 15, end: 15 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 8, end: 8 }
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 36, end: 36 }
+      - { doc: endpoints/api-notes.md, anchor: 서버-측-검증-순서, start: 62, end: 62 }
+
+  - id: review.create.r5
+    text: 욕설/비속어 필터링은 서버에서 수행한다. 위반 시 HTTP 400 + content_policy_violation 코드로 응답.
+    category: decision
+    owner_layer: L3
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 16, end: 16 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 7, end: 7 }
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 33, end: 33 }
+      - { doc: endpoints/api-notes.md, anchor: 서버-측-검증-순서, start: 63, end: 63 }
+
+  - id: review.create.r6
+    text: 클라이언트는 빈 별점 또는 빈 텍스트만 즉시 피드백한다(validation_error). 욕설 등 본질적 검증은 서버 응답을 기다린다.
+    category: decision
+    owner_layer: L1
+    assumption: false
+    source_refs:
+      - { doc: plaud/transcript.md, anchor: null, start: 42, end: 44 }
+      - { doc: design/design-notes.md, anchor: 상태별-ui, start: 23, end: 23 }
+
+  - id: review.create.r7
+    text: 작성 화면은 별도 페이지(/review/new?product_id=...)로 구성하며 모달이 아니다.
+    category: decision
+    owner_layer: L0
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 3-화면, start: 21, end: 22 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 9, end: 9 }
+      - { doc: design/design-notes.md, anchor: 화면-구성-reviewnewproduct_idid, start: 3, end: 7 }
+
+  - id: review.create.r8
+    text: 작성 완료 시 이전 화면으로 navigation pop + 성공 토스트(2초)를 표시한다.
+    category: decision
+    owner_layer: L0
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 2-확정-범위, start: 17, end: 17 }
+      - { doc: design/design-notes.md, anchor: 상태별-ui, start: 22, end: 22 }
+
+  - id: review.create.r9
+    text: |
+      화면 상태는 7가지를 가진다 — initial, loading, success, validation_error, permission_denied, duplicate, network_error.
+      (참고: plaud/summary.md:11은 "6가지"라고 표현했으나 initial을 제외한 결과 상태만 셈한 것이다. PRD line 26-32가 initial 포함 7가지를 명시적으로 나열하므로 본 spec은 7가지로 통일한다.)
+    category: decision
+    owner_layer: L1
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 4-상태, start: 26, end: 32 }
+      - { doc: plaud/summary.md, anchor: decisions-v1-확정, start: 11, end: 11 }
+
+  - id: review.create.r10
+    text: POST /reviews 요청은 인증이 필수이며, request body는 product_id / rating / text이다.
+    category: decision
+    owner_layer: L2
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 5-api, start: 37, end: 41 }
+      - { doc: endpoints/api-notes.md, anchor: post-reviews, start: 5, end: 16 }
+
+  - id: review.create.p1
+    text: 사진 첨부 1장 기능은 v1 확정이 아니라 proposal이다. 도입 시 별도 photo_id 업로드 흐름(POST /uploads)이 선행되어야 한다.
+    category: proposal
+    owner_layer: L4
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 6-proposal-v1-확정-아님, start: 44, end: 47 }
+      - { doc: plaud/summary.md, anchor: proposals, start: 15, end: 15 }
+      - { doc: plaud/transcript.md, anchor: null, start: 13, end: 17 }
+
+  - id: review.create.a1
+    text: 백엔드는 다음 주까지 OpenAPI 스키마를 확정하여 공유한다.
+    category: action_item
+    owner_layer: L2
+    assumption: false
+    source_refs:
+      - { doc: plaud/summary.md, anchor: action-items, start: 25, end: 25 }
+
+  - id: review.create.a2
+    text: 프론트는 6가지 화면 상태를 mock repository + 픽스처로 모두 도달 가능하도록 구현한다.
+    category: action_item
+    owner_layer: L1
+    assumption: false
+    source_refs:
+      - { doc: plaud/summary.md, anchor: action-items, start: 26, end: 26 }
+
+  - id: review.create.a3
+    text: 디자이너는 RatingStars / ReviewTextArea를 디자인 시스템에 신규 추가한다. SuccessToast는 기존 컴포넌트를 재사용한다. 신규 추가 작업은 본 feature와 별도 PR로 분리한다.
+    category: action_item
+    owner_layer: L0
+    assumption: false
+    source_refs:
+      - { doc: plaud/summary.md, anchor: action-items, start: 27, end: 27 }
+      - { doc: design/design-notes.md, anchor: 컴포넌트, start: 13, end: 15 }
+      - { doc: design/design-notes.md, anchor: 디자인-시스템-작업, start: 37, end: 38 }
+
+  - id: review.create.x1
+    text: 리뷰 조회 / 수정 / 삭제 / 상품 상세 페이지 통합은 본 feature 범위 외이며 다른 feature에서 다룬다.
+    category: rejected
+    owner_layer: L2
+    assumption: false
+    source_refs:
+      - { doc: prd/review.md, anchor: 7-범위-외, start: 49, end: 53 }
+      - { doc: plaud/summary.md, anchor: out-of-scope-다른-feature에서-다룸, start: 19, end: 22 }

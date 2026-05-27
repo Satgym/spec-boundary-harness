@@ -1,0 +1,29 @@
+id: flutter-riverpod-openapi
+platform: flutter
+state_management: riverpod
+api_contract: openapi
+architecture: feature-first
+generated_file_policy: do-not-edit-by-hand
+frontend_allowed_files:
+  - lib/features/review/presentation/**
+  - lib/features/review/state/**
+  - lib/features/review/domain/**
+  - lib/features/review/data/repositories/mock/**
+  - lib/features/review/data/fixtures/**
+  - lib/core/design_system/**            # 사용만; 본 feature에서 수정 금지 (별도 PR)
+  - test/features/review/**
+frontend_forbidden_files:
+  - lib/features/review/data/repositories/real/**
+  - lib/core/network/**
+  - server/**
+  - backend/**
+  - openapi/**
+  - .env
+  - secrets/**
+backend_allowed_files:
+  - server/**
+  - backend/**
+  - openapi/**
+backend_forbidden_files:
+  - lib/features/**/presentation/**
+  - lib/core/design_system/**

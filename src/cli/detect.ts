@@ -1,4 +1,4 @@
-import { promises as fs, statSync } from "node:fs";
+import { promises as fs, statSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { exists } from "../util/fs.js";
 
@@ -14,10 +14,36 @@ export interface DetectResult {
 
 const SEARCH_ROOTS = ["inputs", "examples"];
 
+function hasReadableContent(dir: string): boolean {
+  // META-03 from meta-review: an empty directory with a recognized subfolder
+  // should NOT count as a valid bundle. Require at least one .md/.txt/.yaml/.yml
+  // file somewhere under the candidate.
+  const stack: string[] = [dir];
+  while (stack.length) {
+    const d = stack.pop()!;
+    let entries;
+    try {
+      entries = readdirSync(d, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) {
+        stack.push(full);
+      } else if (/\.(md|markdown|txt|yaml|yml|json)$/i.test(e.name)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function looksLikeInput(entryPath: string): boolean {
   // A directory is treated as an input bundle when at least one of these
-  // subdirectories or files is present.
-  return ["prd", "plaud", "endpoints", "design", "profile.yaml"].some((sub) => {
+  // subdirectories or files is present AND the bundle contains at least one
+  // readable content file.
+  const hasMarker = ["prd", "plaud", "endpoints", "design", "profile.yaml"].some((sub) => {
     try {
       statSync(path.join(entryPath, sub));
       return true;
@@ -25,6 +51,8 @@ function looksLikeInput(entryPath: string): boolean {
       return false;
     }
   });
+  if (!hasMarker) return false;
+  return hasReadableContent(entryPath);
 }
 
 // Convert a folder name into a feature id.
