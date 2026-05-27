@@ -1,0 +1,73 @@
+id: boundary-rules
+description: |
+  Core L0–L4 boundary rules. Validators enforce these deterministically.
+layers:
+  L0:
+    label: Presentation / Design
+    allowed:
+      - screen layout
+      - design system component usage
+      - typography / spacing / color
+      - empty / loading / error visual state
+      - local-only interaction (modal open, tab switch, password visibility)
+    forbidden:
+      - password verification
+      - password hash
+      - token signing
+      - payment calculation
+      - pricing calculation
+      - permission decision
+      - account lock decision
+      - DB access
+      - external secret
+      - webhook verification
+  L1:
+    label: Client Interaction / State
+    allowed:
+      - form state
+      - local validation (convenience only)
+      - loading / API state transitions
+      - repository interface call
+      - mock repository / fixture data
+      - optimistic UI
+      - client-side pagination state
+    forbidden:
+      - final security validation
+      - payment / pricing calculation
+      - direct DB access
+      - external secret usage
+  L2:
+    label: Contract / API Boundary
+    allowed:
+      - endpoint path, method, request/response schema
+      - error codes
+      - auth requirement
+      - pagination / sorting / filtering contracts
+      - DTO / repository interface contracts
+      - event / webhook schema
+    forbidden:
+      - business rule decision
+      - DB query implementation
+  L3:
+    label: Server Application / Domain
+    allowed:
+      - business rules
+      - server-side validation
+      - auth/permission decisions
+      - domain state transitions
+      - transactions, duplicate checks
+      - pricing / payment / inventory decisions
+    forbidden:
+      - DOM access
+      - presentation logic
+  L4:
+    label: Infrastructure / Background
+    allowed:
+      - DB query / mutation
+      - file storage
+      - queue / scheduler
+      - email / push / webhook
+      - external API integration
+      - audit log / monitoring
+    forbidden:
+      - presentation logic

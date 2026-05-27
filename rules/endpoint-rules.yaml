@@ -1,0 +1,20 @@
+id: endpoint-rules
+description: |
+  Rules for endpoint candidates, orphan detection, and contract coverage.
+require_source_ref: true
+status_values:
+  - confirmed
+  - proposal
+  - orphan
+  - unresolved
+checks:
+  - id: ep-001
+    rule: Every endpoint must declare a status.
+  - id: ep-002
+    rule: A 'confirmed' endpoint must be referenced by at least one interaction.
+  - id: ep-003
+    rule: Endpoints surfaced from endpoint-notes but with no PRD/transcript anchor must be 'orphan' or 'unresolved'.
+  - id: ep-004
+    rule: An interaction whose trigger implies an API call (로그인, 결제, 업로드, ...) must list a call.
+  - id: ep-005
+    rule: Each confirmed endpoint must have request/response shape and error codes documented in the OpenAPI patch.

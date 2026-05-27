@@ -1,0 +1,18 @@
+feature_id: auth.login
+events:
+  - id: auth.login.event.audit_login_attempt
+    trigger: POST /auth/login 처리 시 (성공/실패 모두)
+    layer: L4
+    description: 로그인 시도(성공/실패) 감사 로그 기록. 실패 횟수 제한 정책이 도입되면 이 로그를 기반으로 카운터를 증가시킨다.
+    source_refs:
+      - { doc: prd/auth.md, anchor: open-items, start: 20, end: 20 }
+      - { doc: plaud/auth-summary.md, anchor: open-questions, start: 15, end: 15 }
+    assumption: true   # PRD가 명시하지 않음. 보안/감사 기본 모범사례에 따른 inference.
+
+  - id: auth.login.event.lock_account
+    trigger: 실패 카운터가 임계값을 넘었을 때 (정책 도입 시)
+    layer: L4
+    description: 계정 잠금 처리 + 알림. 정책은 open question으로 남아 있다.
+    source_refs:
+      - { doc: prd/auth.md, anchor: open-items, start: 20, end: 20 }
+    assumption: true   # 정책 미확정.

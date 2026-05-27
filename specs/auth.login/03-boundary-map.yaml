@@ -1,0 +1,57 @@
+feature_id: auth.login
+layers:
+  - layer: L0
+    label: Presentation / Design
+    items:
+      - 로그인 화면 레이아웃 (TextField, PrimaryButton, ErrorBanner)
+      - 디자인 시스템 컴포넌트 사용 (lib/core/design_system)
+      - 비밀번호 표시 토글 (눈 아이콘) — presentation-only
+      - 6가지 상태(initial/loading/success/invalid_credentials/account_locked/network_error)의 시각 표현
+    forbidden:
+      - 비밀번호 검증 / 비밀번호 해시
+      - 토큰 서명, 토큰 발급
+      - 권한 결정, 계정 잠금 결정
+      - 결제/가격 계산
+      - DB 접근, 외부 시크릿, 웹훅 검증
+
+  - layer: L1
+    label: Client Interaction / State
+    items:
+      - 폼 상태와 로컬 검증 (이메일 형식, 빈 값 확인 등 편의 검증)
+      - 6가지 화면 상태 전이 (initial → loading → success/error)
+      - POST /auth/login 호출 인터랙션 (repository interface 경유)
+      - mock repository + 픽스처를 통한 endpoint preview (실제 호출은 backend 작업에서)
+    forbidden:
+      - 최종 보안 검증 (서버 권한)
+      - 비밀번호 검증, 토큰 서명, 계정 잠금 결정
+      - 직접 DB 접근, 외부 시크릿 사용
+
+  - layer: L2
+    label: Contract / API Boundary
+    items:
+      - "엔드포인트 계약 POST /auth/login (request: email+password, response: token+user, errors: 400/401/423/5xx)"
+      - LoginRequest / LoginResponse DTO 정의
+      - 인증 필요 여부 = 익명 (로그인 자체)
+      - "에러 코드 매핑: 401 invalid_credentials, 423 account_locked, 5xx server_error, network_error는 UI 레이어에서 처리"
+    forbidden:
+      - 비즈니스 규칙 결정 (서버 책임)
+      - DB 쿼리 구현
+
+  - layer: L3
+    label: Server Application / Domain
+    items:
+      - "비밀번호 검증은 서버에서 수행 (auth.login.r3; source: prd/auth.md:7, plaud/auth-summary.md:6)"
+      - "계정 잠금 정책 결정 — 실패 횟수 제한 적용 여부는 open question (auth.login.q1; source: prd/auth.md:20). 정책 미도입 상태에서는 423 응답이 발생하지 않으며, OpenAPI는 도입 시를 대비해 계약만 보유."
+      - "인증 토큰 발급 — 성공 시 access_token 반환 [ASSUMPTION] (입력 자료는 POST /auth/login 호출만 확정; 토큰 형태/필수성은 백엔드 스키마 확정 사항. source: plaud/auth-summary.md:19 'POST /auth/login 스키마 확정')"
+      - "도메인 에러 → HTTP 에러 코드 매핑 — invalid_credentials=401, account_locked=423, invalid_input=400, server_error=500 [partial ASSUMPTION] (입력 자료는 invalid_credentials/account_locked/network_error만 요구. 400/500 매핑은 OpenAPI 계약에 따른 본 spec의 결정)"
+    forbidden:
+      - DOM 접근, presentation 로직
+
+  - layer: L4
+    label: Infrastructure / Background
+    items:
+      - "사용자 자격증명 저장소 조회 (assumption; 인증 흐름의 기본 구성)"
+      - "실패 시도 카운터 저장 (조건부; auth.login.q1 정책 도입 시에만)"
+      - "인증 이벤트 감사 로그 (07-background-events.yaml#auth.login.event.audit_login_attempt; assumption)"
+    forbidden:
+      - presentation 로직

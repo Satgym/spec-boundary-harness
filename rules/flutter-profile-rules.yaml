@@ -1,0 +1,14 @@
+id: flutter-profile-rules
+description: |
+  Flutter-specific constraints applied on top of boundary-rules.yaml when profile.platform == 'flutter'.
+checks:
+  - id: flt-001
+    rule: Frontend packets may touch lib/features/*/presentation, state, domain, and mock data; never real network code or backend.
+  - id: flt-002
+    rule: lib/core/design_system is L0 only; no API calls, no auth.
+  - id: flt-003
+    rule: Real network code lives under lib/core/network/** and is L2 contract surface — owned by frontend engineers but reviewed against OpenAPI.
+  - id: flt-004
+    rule: Backend tasks must not modify lib/features/*/presentation or lib/core/design_system.
+  - id: flt-005
+    rule: Generated DTO files (openapi-codegen output) are read-only outside generation.

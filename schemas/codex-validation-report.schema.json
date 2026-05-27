@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodexValidationReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generated_at", "feature_id", "input_summary", "findings", "notes"],
+  "properties": {
+    "generated_at": { "type": "string" },
+    "feature_id": { "type": ["string", "null"] },
+    "input_summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "validator",
+          "severity",
+          "feature_id",
+          "artifact",
+          "message",
+          "evidence",
+          "suggested_fix"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "validator": {
+            "type": "string",
+            "enum": [
+              "source-coverage",
+              "boundary-violation",
+              "endpoint-coverage",
+              "screen-state-coverage",
+              "openapi-patch",
+              "conflict-blocking",
+              "prompt-injection",
+              "packet-scope",
+              "other"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "feature_id": { "type": ["string", "null"] },
+          "artifact": { "type": ["string", "null"] },
+          "message": { "type": "string" },
+          "evidence": { "type": ["string", "null"] },
+          "suggested_fix": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "notes": { "type": ["string", "null"] }
+  }
+}

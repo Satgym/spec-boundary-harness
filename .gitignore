@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.tsbuildinfo
+
+# Generated outputs (kept under specs/ for the auth-login sample, but other
+# repos using this harness should regenerate their own).
+specs/**/.feature.json
+specs/**/.frontend-packet.json
+specs/**/.backend-packet.json
+
+# Reports are generated artifacts; keep the auth-login sample reports tracked
+# only if you want them as living documentation.
+reports/.codex-validate.log
+reports/.codex-validate.raw.log
+
+# Local user data
+.DS_Store
+.env
+.env.*
+secrets/
+credentials/
+
+# Editor / OS
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,7 @@
+id: preview-vs-final-amount
+description: |
+  Regression test: frontend may render server-provided previewed totals, but must not compute the final amount.
+expectations:
+  - L0 may render values returned by /payments/preview
+  - L1 may format and re-render values
+  - L3 must compute the final amount on the server

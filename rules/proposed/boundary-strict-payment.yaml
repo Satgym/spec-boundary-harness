@@ -1,0 +1,9 @@
+id: boundary-strict-payment
+description: |
+  Strengthen guard against payment/pricing calculation in frontend packets.
+rule:
+  - frontend packets must never include 'final amount' calculations
+safe_to_apply: false
+rationale: |
+  Auto-applying would prevent any frontend preview UI from rendering computed totals.
+  Requires human decision on what 'preview' is allowed.

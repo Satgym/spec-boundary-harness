@@ -1,0 +1,30 @@
+feature_id: auth.login
+entities:
+  - id: LoginRequest
+    fields:
+      - { name: email, type: string, required: true, notes: 이메일 형식 (서버에서 형식 검증) }
+      - { name: password, type: string, required: true, notes: 평문 입력. 절대 클라이언트에서 해싱하지 않음 }
+    source_refs:
+      - { doc: prd/auth.md, anchor: confirmed-scope, start: 6, end: 6 }
+
+  - id: LoginResponse
+    fields:
+      - { name: access_token, type: string, required: true, notes: 서버에서 발급 (L3) }
+      - { name: refresh_token, type: string, required: false, notes: 발급 여부는 백엔드 결정 — POST /auth/refresh의 존재 여부와 연결됨 (proposal) }
+      - { name: user, type: object, required: true, notes: 최소 id, email. 형태는 백엔드 스키마 확정 시 결정 }
+    source_refs:
+      - { doc: prd/auth.md, anchor: api-expectations, start: 16, end: 16 }
+      - { doc: plaud/auth-summary.md, anchor: action-items, start: 19, end: 19 }
+
+  - id: LoginError
+    fields:
+      - { name: code, type: string, required: true, notes: invalid_credentials | account_locked | server_error }
+      - { name: message, type: string, required: false, notes: 사람용 메시지 (UI에서 그대로 노출하지 말 것 — 토큰 누출/잠금 정책 정보 노출 우려) }
+    source_refs:
+      - { doc: prd/auth.md, anchor: confirmed-scope, start: 8, end: 8 }
+
+assumptions:
+  - id: LoginResponse.refresh_token
+    text: refresh_token 발급 여부는 PRD가 명시하지 않음. POST /auth/refresh가 proposal이므로 v1 release에는 발급하지 않을 수 있음.
+    source_refs:
+      - { doc: endpoints/auth-endpoint-notes.md, anchor: null, start: 7, end: 7 }

@@ -1,0 +1,27 @@
+id: screen-state-rules
+description: |
+  Required screen states based on interaction kind.
+required_states_for_async_calls:
+  - loading
+  - success
+  - network_error
+recommended_states_for_auth_flows:
+  - invalid_credentials
+  - account_locked
+  - permission_denied
+recommended_states_for_lists:
+  - empty
+  - error
+ui_error_code_mapping:
+  - http: 400
+    state: invalid_input
+  - http: 401
+    state: invalid_credentials
+  - http: 403
+    state: permission_denied
+  - http: 409
+    state: conflict
+  - http: 423
+    state: account_locked
+  - http: 5xx
+    state: server_error

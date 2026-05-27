@@ -1,0 +1,29 @@
+id: flutter-riverpod-openapi
+platform: flutter
+state_management: riverpod
+api_contract: openapi
+architecture: feature-first
+generated_file_policy: do-not-edit-by-hand
+frontend_allowed_files:
+  - lib/features/login/presentation/**
+  - lib/features/login/state/**
+  - lib/features/login/domain/**
+  - lib/features/login/data/repositories/mock/**
+  - lib/features/login/data/fixtures/**
+  - lib/core/design_system/**
+  - test/features/login/**
+frontend_forbidden_files:
+  - lib/features/login/data/repositories/real/**
+  - lib/core/network/**
+  - server/**
+  - backend/**
+  - openapi/**
+  - .env
+  - secrets/**
+backend_allowed_files:
+  - server/**
+  - backend/**
+  - openapi/**
+backend_forbidden_files:
+  - lib/features/**/presentation/**
+  - lib/core/design_system/**

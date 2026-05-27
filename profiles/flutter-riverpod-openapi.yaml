@@ -1,0 +1,54 @@
+id: flutter-riverpod-openapi
+platform: flutter
+state_management: riverpod
+api_contract: openapi
+architecture: feature-first
+paths:
+  presentation: lib/features/*/presentation/**
+  state: lib/features/*/state/**
+  domain: lib/features/*/domain/**
+  data: lib/features/*/data/**
+  core_network: lib/core/network/**
+  design_system: lib/core/design_system/**
+generated_file_policy: do-not-edit-by-hand
+frontend_allowed_files:
+  - lib/features/*/presentation/**
+  - lib/features/*/state/**
+  - lib/features/*/domain/**
+  - lib/features/*/data/repositories/mock/**
+  - lib/features/*/data/fixtures/**
+  - lib/core/design_system/**
+  - test/features/**
+frontend_forbidden_files:
+  - lib/features/*/data/repositories/real/**
+  - lib/core/network/**
+  - server/**
+  - backend/**
+  - openapi/**
+  - .env
+  - secrets/**
+backend_allowed_files:
+  - server/**
+  - backend/**
+  - openapi/**
+  - migrations/**
+backend_forbidden_files:
+  - lib/features/*/presentation/**
+  - lib/core/design_system/**
+layer_mapping:
+  L0:
+    - lib/features/*/presentation/**
+    - lib/core/design_system/**
+  L1:
+    - lib/features/*/state/**
+    - lib/features/*/domain/**
+    - lib/features/*/data/repositories/mock/**
+  L2:
+    - lib/features/*/data/repositories/interfaces/**
+    - openapi/**
+  L3:
+    - server/services/**
+    - backend/domain/**
+  L4:
+    - server/infrastructure/**
+    - backend/integrations/**

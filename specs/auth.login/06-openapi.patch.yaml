@@ -1,0 +1,94 @@
+paths:
+  /auth/login:
+    post:
+      x-status: confirmed
+      summary: 이메일/비밀번호로 로그인
+      operationId: postAuthLogin
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Invalid request (잘못된 필드 형식 등)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginError"
+        "401":
+          description: Invalid credentials (UI state = invalid_credentials)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginError"
+        "423":
+          description: Account locked (UI state = account_locked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginError"
+        "500":
+          description: Server error (UI state = network_error 또는 server_error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginError"
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    LoginResponse:
+      # NOTE: 본 응답 shape은 입력 자료에서 직접 확인되지 않은 assumption이다.
+      # plaud/auth-summary.md:19 가 "백엔드: POST /auth/login 스키마 확정"을
+      # action item으로 남겼으며, 백엔드의 스키마 결정 후 본 정의가 갱신되어야 한다.
+      # 본 patch는 v1 통합을 위해 합리적 기본값으로 작성된 proposal 수준이다.
+      x-status: proposal
+      x-assumption: |
+        access_token, user 필드의 필수성은 PRD/녹취록/요약에서 직접 확인되지 않았다.
+        백엔드 스키마 확정 시 변경 가능.
+      type: object
+      required: [access_token, user]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+          nullable: true
+        user:
+          $ref: "#/components/schemas/User"
+    User:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+    LoginError:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum: [invalid_credentials, account_locked, invalid_input, server_error]
+        message:
+          type: string
