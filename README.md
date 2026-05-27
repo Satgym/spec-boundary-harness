@@ -1,8 +1,10 @@
 # Spec Boundary Harness
 
-> **One slash command. Two LLMs cross-checking each other. Eleven boundary contracts that downstream developers can use as their rulebook.**
+> **One slash command. Two LLMs cross-checking each other. Three Korean hand-off documents your frontend and backend developers can build from without ever drifting apart.**
 
-Convert feature planning materials (PRD, PLAUD transcripts/summaries, endpoint notes, design notes, project profile) into a structured set of frontend / backend boundary contracts and Claude Code work packets — with an independent Codex review pass that catches what the first LLM missed.
+Convert feature planning materials (PRD, meeting notes, API drafts, design notes) into Korean hand-off documents that survive a real isolated FE-vs-BE round trip — with an independent Codex review pass and cross-section consistency gates that catch silent divergence before it ships.
+
+**v0.6.0 highlights** — endpoint × error → screen-state matrix is now mandatory; narrative response-field lists and OpenAPI schemas are diffed before publishing; serialization metadata (JSON case, timestamp format, ID types, list-wrapper shape) must be explicit; the finalizer simulates two isolated developer readings of the deliverables and refuses to publish until both agree. See `CHANGELOG.md`.
 
 ## Install (Claude Code plugin)
 

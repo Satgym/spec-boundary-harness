@@ -4,6 +4,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-05-27
+
+Cross-section consistency hardening, based on integration-failure feedback from the `sbh-test` reservation-modify run. Two P0 defects (M1, M2) and three P1/P2 weaknesses identified by an isolated-FE-vs-isolated-BE round-trip test are now closed. See `HARNESS_FIX_PROMPT.md` in the upstream repo for the full root-cause writeup.
+
+### Fixed — M1 (response-field cross-section mismatch)
+
+When the same endpoint's response is described both in narrative form (e.g. "변경 성공 응답 — id, name, ...") and via schema reference (OpenAPI patch, GET response equivalence), the two descriptions could silently disagree. FE and BE developers each follow the section they read, and integration breaks (e.g. FE expects three UX-hint fields the BE never returns).
+
+- `prompts/claude-finalizer.md` now runs `[CHECK: response-field-consistency]` before writing the Korean hand-off documents. The check builds `fields_narrative` and `fields_api` for every endpoint that appears in both forms and refuses to proceed when they diverge without an explicit relationship sentence.
+- `prompts/codex-validator.md` adds rule **9. `cross-section-consistency`** as a regression net: any silent divergence between narrative and schema response-field sets is reported as `high`.
+
+### Fixed — M2 (error enum × screen-state enum coverage gap)
+
+When an endpoint's error enum included a code (e.g. `STALE_RESERVATION_VERSION`) that had no entry in the calling screen's state enum (e.g. cancel-modal had 9 states but not `stale_version`), the gap was invisible because the two enums were described in different sections. FE quietly fell back to `server_error`; BE never knew.
+
+- `prompts/claude-analyzer.md` now executes `[STEP 8: error-x-screen-state-mapping]`. For every endpoint, it builds an explicit `endpoint × error → state` matrix into `04-screen-state-spec.md`. Empty cells are never accepted: the analyzer must either extend the state enum, pick a named fallback, or register a `question` in `02-conflicts-and-questions.md`.
+- `prompts/claude-finalizer.md` adds `[CHECK: error-enum-x-screen-state-coverage]` to refuse Korean-doc generation while any cell is empty or maps to a state that does not exist on the calling screen.
+- `prompts/codex-validator.md`'s `screen-state-coverage` rule now flags the cross-enum gap at `high` severity.
+- `rules/screen-state-rules.yaml` formalises the rule as `error-state-coverage` with explicit enforcement points at analyzer / finalizer / validator.
+
+### Added — `[PREFLIGHT: prd-self-consistency]`
+
+PRDs often contain their own contradictions (same domain fact stated two different ways in two different sections, error semantics defined in one place and screen states defined in another with no cross-check). The analyzer now performs a self-consistency scan over the PRD **before** producing any artifact. Mismatches register as conflicts in `02-conflicts-and-questions.md`, even if the PRD's own "Open Questions" section did not mention them.
+
+### Added — `[FINAL CHECK: round-trip simulation]`
+
+`prompts/claude-finalizer.md` now simulates two isolated developer sessions before publishing the Korean hand-off docs:
+
+- `A_fe` = what an FE developer who reads only `01-공통-규칙.md` + `02-프론트엔드-작업.md` would assume about endpoint path/method, request/response field sets, error→HTTP mapping, auth, serialization metadata.
+- `A_be` = the corresponding contract a BE developer who reads only `01-공통-규칙.md` + `03-백엔드-작업.md` would conclude.
+
+When `A_fe ≠ A_be` on any axis, the finalizer rewrites the relevant section of `01-공통-규칙.md` until the two sides agree.
+
+### Added — serialization metadata is now mandatory
+
+`01-공통-규칙.md` must contain an explicit "직렬화 메타데이터" section covering JSON key case, timestamp format, version/ID numeric types, and list-response wrapper shape. Missing values get a documented default and a registered question, never silent assumptions.
+
+Enforced through:
+
+- `prompts/claude-analyzer.md` `[STEP 9: serialization-metadata]`
+- `prompts/claude-finalizer.md` `[CHECK: serialization-metadata-present]`
+- `rules/screen-state-rules.yaml` `serialization-metadata-required`
+
+### Regression test scenario
+
+`/Users/satgym/work/sbh-test/inputs/test/` (the original reservation-modify reproduction case) should be re-run after this version is installed. The two regression assertions are:
+
+- `01-공통-규칙.md` §2.8 "변경 성공 응답" field set agrees with §6.2 PATCH response field set (or the difference is explicit).
+- `02-프론트엔드-작업.md` cancel-modal state enum covers every error returned by the cancel endpoint, including `STALE_RESERVATION_VERSION`.
+
 ## [0.5.1] — 2026-05-27
 
 ### Added — `/spec-boundary-harness:setup <feature-id>` slash command

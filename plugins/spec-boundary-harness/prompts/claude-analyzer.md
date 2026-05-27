@@ -341,16 +341,36 @@ Run `spec-harness validate` to populate this report.
 ## Process
 
 1. List the input directory recursively, then read every `.md`, `.yaml`, `.txt` file in full.
-2. Read the repo profile and rule YAMLs.
-3. Identify the feature(s) implied by the input. For a single-feature run you are told the feature id; if the inputs contain content unrelated to it, ignore it.
-4. Pull out requirements with category and source_refs.
-5. Extract interactions, business rules, endpoints (with `confirmed | proposal | orphan | unresolved` status), screens, domain entities, conflicts, open questions, security warnings.
-6. Classify each item to L0–L4 using the layer model and classification questions.
-7. Decide frontend/backend packet status:
-   - **BLOCKED** if any unresolved conflict is `high` or `critical`, or any security warning is `high` or `critical`.
-   - **WARNING** if there are `medium` conflicts or open questions.
-   - **READY** otherwise.
-8. Write the 11 files to `specs/<feature-id>/`.
+2. **[PREFLIGHT: prd-self-consistency]** Before writing any artifact, scan the PRD (and supporting docs) for **self-contradictions**:
+   - Extract every "error code enum" statement and every "screen state enum" statement.
+   - Extract every "concurrency / revision / optimistic-locking" rule and check whether every mutation endpoint (create / modify / cancel / delete) has matching screen-state coverage for the resulting error codes.
+   - Extract every place the same domain fact is restated (e.g. response field list in narrative form vs in an API table). Compare and flag mismatches.
+   - Any contradiction found here is registered as a **conflict** in `02-conflicts-and-questions.md`, even if the PRD's own "Open Questions" section did not mention it. The PRD author often does not notice their own inconsistencies; you must.
+3. Read the repo profile and rule YAMLs.
+4. Identify the feature(s) implied by the input. For a single-feature run you are told the feature id; if the inputs contain content unrelated to it, ignore it.
+5. Pull out requirements with category and source_refs.
+6. Extract interactions, business rules, endpoints (with `confirmed | proposal | orphan | unresolved` status), screens, domain entities, conflicts, open questions, security warnings.
+7. Classify each item to L0–L4 using the layer model and classification questions.
+8. **[STEP: error-x-screen-state-mapping]** Build the matrix that the finalizer and validator both depend on:
+   - For each endpoint `e`, collect the set of error codes it can return (from `06-openapi.patch.yaml`, including HTTP status + domain code).
+   - For each endpoint `e`, identify which screen(s) call it and their state enums (from `04-screen-state-spec.md`).
+   - Produce an endpoint × error → state matrix. Every row (error code) MUST map to exactly one state-enum value of the calling screen.
+   - If a row has no natural mapping, do ONE of:
+     (a) extend the screen's state enum with a new state and document why,
+     (b) pick a fallback (e.g. `server_error`) and explicitly write "fallback because no specific state exists",
+     (c) register the gap as a `question` in `02-conflicts-and-questions.md`.
+   - Empty cells (un-mapped errors) are NEVER acceptable. Persist the matrix as part of `04-screen-state-spec.md`.
+9. **[STEP: serialization-metadata]** For the API contract, explicitly record:
+   - JSON key case (camelCase vs snake_case).
+   - Timestamp serialization format (e.g. `ISO-8601 with Z suffix` vs epoch ms).
+   - Numeric ID / version types (e.g. `revision: integer` vs `revision: string`).
+   - List response wrapper shape (e.g. `{ items: [...] }` vs raw `[...]`).
+   These four go into `06-openapi.patch.yaml` (as `x-meta` or in component schemas) AND into `01-requirements.yaml` as four explicit decisions. The finalizer relies on these being present.
+10. Decide frontend/backend packet status:
+    - **BLOCKED** if any unresolved conflict is `high` or `critical`, or any security warning is `high` or `critical`.
+    - **WARNING** if there are `medium` conflicts or open questions.
+    - **READY** otherwise.
+11. Write the 11 files to `specs/<feature-id>/`.
 
 Do not stop to ask questions. If something is ambiguous, make a reasonable assumption, record it in `ASSUMPTIONS.md` and as `assumption: true` in the relevant requirement.
 

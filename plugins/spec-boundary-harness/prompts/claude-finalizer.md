@@ -38,6 +38,58 @@ Codex is now configured to report only `critical` and `high`-severity findings (
 
 Synthesize the 11 intermediate artifacts into three documents at `<PROJECT_ROOT>/results/<feature-id>/`. **Write them in Korean.** Each document must be self-contained — a downstream developer should be able to paste it as the entire context for their own Claude Code session and start working.
 
+### Pre-write consistency gates (run BEFORE writing any of the three docs)
+
+These checks catch the most damaging cross-section bugs we have observed in real runs. Run them in order; do not start writing the Korean docs until each passes (or the gap is registered as a conflict).
+
+#### [CHECK: response-field-consistency]
+
+For each endpoint that appears in **both** a narrative response-format section (e.g. "변경 성공 응답 — reservationId, …") and the API-contract section (e.g. §6.2 PATCH 응답 200):
+
+1. Build `fields_narrative` from the narrative section and `fields_api` from the OpenAPI patch / API contract.
+2. If `fields_narrative ≠ fields_api`:
+   - Either pick **one section as the authoritative source** (almost always the OpenAPI patch / schema reference) and rewrite the other to match it word-for-word, OR
+   - Add an explicit sentence in the narrative section noting the intentional difference (e.g. "PATCH 응답은 GET 응답과 동일하지만 UX hint 3개는 GET에서만 제공된다").
+3. If neither resolution is possible without changing scope, register the gap as a conflict in `specs/<feature>/02-conflicts-and-questions.md` and degrade the affected packet to `WARNING` or `BLOCKED`.
+
+The common failure mode: PATCH response is decided in `06-openapi.patch.yaml` as `ReservationDetailResponse` (= GET response), but the narrative response-fields section in §2.8 of the Korean common doc inherits the PRD's hand-written field list and silently drops three UX-hint fields. FE reads §6.2 and includes them; BE reads §2.8 and excludes them; integration breaks.
+
+#### [CHECK: error-enum-x-screen-state-coverage]
+
+The analyzer was instructed (in `claude-analyzer.md`'s STEP 8) to produce an endpoint × error → state matrix inside `04-screen-state-spec.md`. Verify before writing the Korean docs:
+
+For each endpoint `e` involved in a screen `s`:
+
+1. `errors_e` ← every error code `e` can return (from `06-openapi.patch.yaml`).
+2. `states_s` ← the state enum of screen `s` (from `04-screen-state-spec.md`).
+3. For every error in `errors_e`, look up its mapping in the matrix:
+   - **Empty cell** (no mapping) ⇒ this is the M2 failure. Either extend `states_s`, pick a named fallback (and write that explicitly), or register a question. Do NOT let an empty cell survive into the Korean docs.
+   - **Mapped to a state not in `states_s`** (e.g. `stale_version` mapped on the modify screen but the cancel modal doesn't have it) ⇒ same options.
+
+The matrix becomes §7 of `01-공통-규칙.md` (or wherever you place the HTTP-code ↔ UI-state mapping) AND is referenced by name in `02-프론트엔드-작업.md`.
+
+#### [CHECK: serialization-metadata-present]
+
+`01-공통-규칙.md` MUST include an explicit section that states all four of:
+
+- JSON key case (camelCase vs snake_case).
+- Timestamp serialization format (ISO-8601 with `Z` suffix, ISO-8601 with offset, epoch ms, etc.).
+- Version / ID numeric types (e.g. `revision: integer`, `seatId: string`).
+- List response wrapper shape (e.g. `{ items: [...] }` vs raw array).
+
+If any of the four is missing from `01-requirements.yaml` or `06-openapi.patch.yaml`, pick the most common-sense default for the project's stack, write it explicitly in `01-공통-규칙.md` with a note ("기본값으로 채택, 백엔드 확정 시 수정"), AND register it as a question in conflicts-and-questions.
+
+#### [CHECK: round-trip simulation]
+
+Simulate two isolated developer sessions that have only seen part of the deliverables:
+
+- **FE assumption set `A_fe`** — what an FE developer who reads only `01-공통-규칙.md` + `02-프론트엔드-작업.md` would assume about: endpoint path/method, request body fields, response body fields, error code → HTTP status, authentication, serialization metadata.
+- **BE contract `A_be`** — what a BE developer who reads only `01-공통-규칙.md` + `03-백엔드-작업.md` would conclude about the same axes.
+
+For each axis, `A_fe == A_be` must hold. If they could legitimately diverge given the text the developers see, **rewrite the relevant section of `01-공통-규칙.md` to remove the ambiguity**. The job of `01-공통-규칙.md` is precisely to be the single document both sides will agree on; if simulating two readers produces different answers, the doc has not done its job.
+
+This check often surfaces M1-style cross-section mismatches and missing serialization metadata that the previous checks didn't fully cover. Treat any divergence as a P0 blocker for finalization.
+
 ### `results/<feature-id>/01-공통-규칙.md`
 
 양쪽 모두 봐야 하는 문서. 다음 섹션을 포함:
@@ -46,8 +98,14 @@ Synthesize the 11 intermediate artifacts into three documents at `<PROJECT_ROOT>
 - **확정 사항** — `specs/<feature>/01-requirements.yaml`의 `decision` 카테고리를 풀어 쓴 목록.
 - **Proposal / Open Question** — `proposal`, `open_question`, `concern` 항목. 각 항목 옆에 결정 미정인 부분을 명시.
 - **미해결 충돌 및 보안 경고** — `02-conflicts-and-questions.md`의 high/critical 항목. 작업 시작 전에 인간이 확인해야 할 사항을 명시.
-- **API 계약 요약** — `06-openapi.patch.yaml`을 자연어로 풀이. 각 엔드포인트의 메소드/경로/인증 필요 여부/주요 요청·응답 필드/에러 코드. JSON/YAML이 아닌 사람이 읽는 형태.
-- **HTTP 코드 ↔ UI 상태 매핑** — `04-screen-state-spec.md`의 매핑표를 한국어로.
+- **API 계약 요약** — `06-openapi.patch.yaml`을 자연어로 풀이. 각 엔드포인트의 메소드/경로/인증 필요 여부/주요 요청·응답 필드/에러 코드. JSON/YAML이 아닌 사람이 읽는 형태. 한 응답 shape이 다른 응답 shape과 동일하다면 (예: PATCH 응답 = GET 응답) 그 사실을 한 문장으로 명시하고, 차이가 있다면 그 차이도 한 문장으로 명시한다.
+- **직렬화 메타데이터** — 다음 네 항목을 반드시 별도 섹션으로 묶어 명시한다 (round-trip 시 양측이 다르게 가정하지 않도록):
+  1. JSON 키 케이스 (camelCase / snake_case).
+  2. 시각 직렬화 포맷 (예: `ISO-8601 with Z`, epoch ms, ISO-8601 with offset).
+  3. 버전/ID 자료형 (예: `revision`은 integer, `seatId`는 string).
+  4. 리스트 응답 wrapper 형태 (`{ items: [...] }` vs raw array).
+  PRD나 OpenAPI에서 명시되지 않은 항목은 합리적 기본값을 선택하고 그 사실을 명시한다 ("기본값으로 채택, 백엔드 확정 시 수정 필요").
+- **HTTP 코드 ↔ UI 상태 매핑** — `04-screen-state-spec.md`의 endpoint × error → state matrix를 한국어로. 빈 셀이 있어서는 안 된다 (analyzer STEP 8 + finalizer 사전 검사로 강제). 각 endpoint별로 가능한 모든 에러 코드가 호출 화면의 상태 enum 중 하나에 정확히 매핑되어야 한다.
 - **L0–L4 책임 분담** — `03-boundary-map.yaml`을 한국어로 풀이. 누가 무엇을 책임지는지, 그리고 절대 침범하지 않을 경계.
 - **통합 체크리스트** — `10-integration-checklist.md`를 한국어로.
 

@@ -1,27 +1,109 @@
 id: screen-state-rules
 description: |
-  Required screen states based on interaction kind.
+  Required screen states based on interaction kind, plus the M2 coverage rule.
+  These are consumed as LLM prompt context (Claude analyzer + Codex validator),
+  not parsed by the CLI directly. See README "Architecture" section.
+
 required_states_for_async_calls:
   - loading
   - success
   - network_error
+
 recommended_states_for_auth_flows:
   - invalid_credentials
   - account_locked
   - permission_denied
+
 recommended_states_for_lists:
   - empty
   - error
+
 ui_error_code_mapping:
-  - http: 400
-    state: invalid_input
-  - http: 401
-    state: invalid_credentials
-  - http: 403
-    state: permission_denied
-  - http: 409
-    state: conflict
-  - http: 423
-    state: account_locked
-  - http: 5xx
-    state: server_error
+  - { http: 400, state: invalid_input }
+  - { http: 401, state: invalid_credentials }
+  - { http: 403, state: permission_denied }
+  - { http: 409, state: conflict }
+  - { http: 423, state: account_locked }
+  - { http: 5xx, state: server_error }
+
+# --- M2 coverage rule (from HARNESS_FIX_PROMPT.md §2.4 Option B) ----------
+
+rules:
+  - id: error-state-coverage
+    description: |
+      Every error code returned by an endpoint MUST have a mapping to a
+      screen-state enum value used by that endpoint's calling screen.
+      Empty cells in the endpoint × error → state matrix are never acceptable.
+      Different screens calling the same endpoint can each pick a different
+      state, but each (screen, error) pair must be defined.
+
+      If no natural mapping exists, do exactly ONE of:
+        (a) extend the screen's state enum (e.g. add `stale_version` to a
+            modal that previously had only confirming/loading/success/...),
+        (b) pick an explicit fallback (e.g. `server_error`) and write the
+            choice down in the matrix and the hand-off doc,
+        (c) register the gap as a question in 02-conflicts-and-questions.md
+            and degrade the affected packet status.
+
+    applies_to:
+      - 04-screen-state-spec.md         # the matrix lives here
+      - 01-공통-규칙.md (§7 mapping)     # the user-visible reflection
+      - 02-프론트엔드-작업.md (§7)       # the FE's state enum + mapping table
+
+    enforcement:
+      analyzer: |
+        MUST produce an endpoint × error → state matrix as part of
+        04-screen-state-spec.md. No empty cells. (See claude-analyzer.md
+        STEP 8: error-x-screen-state-mapping.)
+      finalizer: |
+        MUST verify the matrix is complete BEFORE writing the Korean
+        hand-off documents. (See claude-finalizer.md
+        [CHECK: error-enum-x-screen-state-coverage].)
+      validator: |
+        MUST flag `high` if any (endpoint, error) row maps to nothing,
+        or maps to a state not present in the calling screen's enum.
+        (See codex-validator.md rule 4 / screen-state-coverage.)
+
+  - id: response-field-cross-section-consistency
+    description: |
+      When the same endpoint's response is described in two places
+      (narrative response-field list AND OpenAPI schema reference), the
+      two must agree on the set of fields — or explicitly state the
+      relationship in prose. Silent divergence breaks integration.
+
+    applies_to:
+      - 01-공통-규칙.md (narrative response-format sections)
+      - 06-openapi.patch.yaml (schema-level source of truth)
+      - 01-공통-규칙.md (§6.x API contract sections)
+
+    enforcement:
+      finalizer: |
+        MUST run [CHECK: response-field-consistency] before writing the
+        Korean docs. (See claude-finalizer.md.)
+      validator: |
+        MUST flag `high` if narrative response field set differs from
+        schema response field set without an explicit relationship
+        sentence. (See codex-validator.md rule 9 / cross-section-consistency.)
+
+  - id: serialization-metadata-required
+    description: |
+      Every API contract section in 01-공통-규칙.md must explicitly state
+      these four serialization choices so FE and BE never silently assume
+      different conventions:
+        1. JSON key case (camelCase / snake_case)
+        2. Timestamp format (ISO-8601 with Z, ISO-8601 with offset, epoch ms)
+        3. Version / numeric ID type (e.g. revision: integer; ids: string)
+        4. List response wrapper shape ({ items: [...] } vs raw [...])
+
+    applies_to:
+      - 01-공통-규칙.md (serialization-metadata section)
+      - 06-openapi.patch.yaml (schema-level)
+
+    enforcement:
+      analyzer: |
+        Captures the four decisions in 01-requirements.yaml and the
+        OpenAPI patch. (See claude-analyzer.md STEP 9: serialization-metadata.)
+      finalizer: |
+        Emits an explicit "직렬화 메타데이터" section in 01-공통-규칙.md.
+        Missing values use a documented default + a registered question.
+        (See claude-finalizer.md [CHECK: serialization-metadata-present].)

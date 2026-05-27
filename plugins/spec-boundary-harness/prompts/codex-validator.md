@@ -95,7 +95,11 @@ For each, produce zero or more findings.
 - For every screen in `04-screen-state-spec.md` that has an associated API call (an interaction in the frontend packet pointing at it), require these states: `loading`, `success`, `network_error`.
 - Auth flows should additionally cover `invalid_credentials` and `account_locked` when applicable.
 - For every error code in `06-openapi.patch.yaml`, require a matching UI state (e.g. 401 → `invalid_credentials`, 423 → `account_locked`).
-- Missing required state → `medium`. Missing UI state for a documented HTTP error code → `medium`.
+- **Cross-enum coverage (high)** — for each endpoint `e` that a screen `s` calls, build `errors_e` from the OpenAPI patch and `states_s` from the screen spec. Every error code in `errors_e` MUST map to exactly one state in `states_s`. Flag `high` if:
+  - any error code in `errors_e` has no entry in the endpoint × error → state matrix, OR
+  - the matrix maps an error to a state value that is not in `states_s` (e.g. cancel endpoint returns `STALE_RESERVATION_VERSION` but the cancel-modal state enum does not include `stale_version` and the matrix doesn't pick an explicit fallback).
+  This is the M2-class failure (`error-enum-vs-screen-state-coverage`): the analyzer was supposed to produce the matrix; if it didn't, OR cells are empty, OR a state is referenced that the screen doesn't have — report it.
+- Missing required state → `medium`. (Only the cross-enum gap above is `high`; everything else stays at `medium` and will be dropped by the severity policy.)
 
 ### 5. `openapi-patch`
 
@@ -134,6 +138,22 @@ For each, produce zero or more findings.
 - `08-frontend-claude-packet.md` `Forbidden files` must include `.env`, `.env.*`, `secrets/**`, `credentials/**`, plus the profile's `frontend_forbidden_files`.
 - `09-backend-claude-packet.md` allowed files must be backend/server/openapi scope only; must not include presentation/design-system paths.
 - Any allowed glob in the frontend packet that broadens scope beyond what the profile permits (e.g. `lib/core/network/**` when profile forbids it) → `high`.
+
+### 9. `cross-section-consistency` (M1 / response-field cross-section diff)
+
+The Korean hand-off documents and the OpenAPI patch sometimes describe the same fact in two different forms (narrative response-field list vs schema reference). When they disagree, FE and BE developers reading different sections build incompatible code. Catch this before that happens.
+
+For each endpoint that appears in **both** of the following:
+
+- a narrative response-format section inside `01-공통-규칙.md` (typically titled "응답 포맷", "변경 성공 응답", or similar), AND
+- an API contract section in `01-공통-규칙.md` (e.g. §6.x) OR `06-openapi.patch.yaml`
+
+Compare the **set of response fields** asserted by each. If `fields_narrative ≠ fields_api`:
+
+- If the narrative section explicitly states the relationship (e.g. "응답은 GET 응답과 동일", or "PATCH 응답은 GET 응답과 동일하지만 UX hint 3개는 GET에서만 제공"), that's acceptable — the document is internally honest about the diff.
+- Otherwise → finding at `high` severity, `validator: "other"`, ID like `XSEC-01`. Message must name both sections (e.g. "§2.8 narrative response lists 14 fields; §6.2 PATCH response (= ReservationDetailResponse) includes 17 fields including canModify / canCancel / notModifiableReason"). Suggested fix: either pick the schema reference as authoritative and rewrite the narrative section, or add an explicit relationship sentence.
+
+This is the **M1 failure class** observed in real runs. It is more dangerous than it looks because both sections look internally consistent and only an explicit set-comparison catches it.
 
 ---
 
