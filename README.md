@@ -20,10 +20,11 @@ This repo is a Claude Code marketplace. There are two ways to install — pick w
 Then in any project directory:
 
 ```text
-/spec-harness
+/spec-boundary-harness:setup <feature-id>        # bootstrap a new feature bundle
+/spec-boundary-harness:spec-harness              # run the full pipeline
 ```
 
-That's the whole interface.
+Two commands. `setup` creates an empty PRD template; `spec-harness` runs the analyze → validate → finalize pipeline.
 
 ### B. Slash command (only in surfaces that expose `/plugin`)
 

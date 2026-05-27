@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-05-27
+
+### Added — `/spec-boundary-harness:setup <feature-id>` slash command
+
+Bootstraps a new feature bundle in the user's current project. Creates:
+
+```
+inputs/<feature-id>/
+└── prd/
+    └── 기획서.md         ← Korean PRD template with 8 sections
+```
+
+After running, the user fills in the PRD and drops free-form notes (transcripts, summaries, API drafts, design notes) loose under the same bundle directory, then runs `/spec-boundary-harness:spec-harness`.
+
+Notes:
+- Feature ids are normalized to dotted form (`auth-login` → `auth.login`).
+- If `기획서.md` already exists, the command leaves it untouched and reports.
+- The PRD template is intentionally minimal — 8 labelled sections in Korean, no placeholder bullets that the user has to remember to clear.
+
+Also exposed as a CLI subcommand: `spec-harness setup <feature-id>`.
+
+4 new vitest cases for the setup command (37/37 pass total).
+
 ## [0.5.0] — 2026-05-27
 
 User-facing redesign based on four feedback items: simpler input layout, Korean output, smaller result surface, stricter reviewer.

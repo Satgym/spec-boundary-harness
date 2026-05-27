@@ -2,6 +2,7 @@ import path from "node:path";
 import { initCommand } from "./init.js";
 import { validateCommand } from "./validate.js";
 import { detectInputs, folderNameToFeatureId } from "./detect.js";
+import { setupCommand } from "./setup.js";
 
 interface CliArgs {
   command: string;
@@ -41,6 +42,8 @@ const HELP = `spec-harness <command>
 
 Commands:
   init                                Scaffold directories and ASSUMPTIONS.md.
+  setup <featureId>                   Create inputs/<featureId>/prd/기획서.md (PRD template).
+                                       Use to bootstrap a new feature bundle.
   detect [featureIdOrDir]             List recognized input bundles (inputs/* and examples/*).
                                        With an argument, prints the resolved <inputDir, featureId>.
   validate [inputDir] [featureId]     Run preflight + Codex read-only validator.
@@ -134,6 +137,16 @@ export async function main(argv: string[] = process.argv): Promise<number> {
     case "init":
       await initCommand(rootDir);
       return 0;
+    case "setup": {
+      const featureId = positional[0];
+      if (!featureId) {
+        console.error("usage: spec-harness setup <featureId>");
+        console.error("       e.g. spec-harness setup payment.checkout");
+        return 2;
+      }
+      await setupCommand(rootDir, featureId);
+      return 0;
+    }
     case "validate": {
       const resolved = await resolveValidateArgs(rootDir, positional);
       if (!resolved) return 2;
