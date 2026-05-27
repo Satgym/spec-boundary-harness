@@ -1,6 +1,6 @@
 {
   "name": "spec-boundary-harness",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "LLM-driven planning compiler: Claude analyzes inputs and writes boundary contracts; Codex re-reads and validates in a single read-only pass; Claude triages findings.",
   "type": "module",
   "bin": {
@@ -22,12 +22,12 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "tsx": "^4.19.1",
     "yaml": "^2.6.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
-    "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
   }

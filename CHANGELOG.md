@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] — 2026-05-28
+
+### Fixed (META-02 from codex meta-review)
+
+- `tsx` moved from `devDependencies` to `dependencies` in `plugins/spec-boundary-harness/package.json`. Previously, a production install (`npm install --omit=dev`) would skip `tsx`, leaving `bin/spec-harness.mjs` unable to launch. The wrapper script's lazy `npm install` happens to bring devDependencies along (since it doesn't pass `--omit=dev`), but any code path that called the CLI directly (or that did a strict prod install) was broken.
+
+### Notes
+
+Discovered during autorun round 2 codex meta-review. Both autorun rounds (comment.post, payment.checkout) converged to 0 critical FE/BE divergence under v0.6.0 + v0.6.1, so no semantic prompt changes were required. The harness contract itself is stable.
+
 ## [0.6.1] — 2026-05-28
 
 Discovered during autonomous round 1 of the autorun improvement loop. Two critical bugs that broke `validate` when the plugin was actually installed (vs cloned in dev). Both already fixed in code; the loop continues.
