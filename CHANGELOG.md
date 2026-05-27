@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-05-27
+
+Pre-flight pass aimed at making the **Manage Plugins GUI flow** (Add Marketplace via GitHub URL → Install) work reliably across Claude Code versions.
+
+### Added
+- `commands/`, `skills/`, `agents/` at the **plugin root** — Claude Code's plugin loader looks for these standard names by default. Previously the files lived only under `.claude/commands/` (project-local convention), which may not be discovered when the repo is installed as a plugin.
+- `scripts/sync-plugin-locations.sh` keeps `.claude/` (source of truth, used for project-local development) and the root-level `commands/skills/agents` (used by the plugin loader) identical. Run it before committing any change to `.claude/`.
+
+### Fixed
+- Wrapper script (`scripts/spec-harness.sh`) plugin-root detection now covers more install paths (`marketplaces/<name>`, `marketplaces/<name>/plugins/<name>`, `installed/<name>/<name>`, `repos/<name>/<name>`) and falls back to a bounded `find` across `~/.claude/plugins/` for unusual layouts.
+- Slash command and skill inline lookup snippets mirror the same path list, so Claude can locate the wrapper regardless of which Claude Code build it's running under.
+
+### Notes
+- The plugin source in `marketplace.json` remains the explicit HTTPS `git` form from 0.3.2 (no SSH, no `github` shorthand) — this part has not changed and is the one that fixed the host-key clone error.
+
 ## [0.3.2] — 2026-05-27
 
 ### Fixed

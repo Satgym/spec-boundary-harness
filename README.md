@@ -6,12 +6,16 @@ Convert feature planning materials (PRD, PLAUD transcripts/summaries, endpoint n
 
 ## Install (Claude Code plugin)
 
-This repo is a Claude Code marketplace. In any Claude Code session:
+This repo is a Claude Code marketplace. There are two ways to install — pick whichever your Claude Code surface exposes.
 
-```text
-/plugin marketplace add Satgym/spec-boundary-harness
-/plugin install spec-boundary-harness
-```
+### A. Manage Plugins GUI (recommended)
+
+1. Open **Manage Plugins** (Settings → Plugins, or the dialog Claude Code shows when a plugin command is unavailable).
+2. Switch to the **Marketplaces** tab → **Add** → paste:
+   ```
+   https://github.com/Satgym/spec-boundary-harness.git
+   ```
+3. Switch back to **Plugins** tab → find `spec-boundary-harness` → click **Install**.
 
 Then in any project directory:
 
@@ -21,7 +25,20 @@ Then in any project directory:
 
 That's the whole interface.
 
+### B. Slash command (only in surfaces that expose `/plugin`)
+
+```text
+/plugin marketplace add Satgym/spec-boundary-harness
+/plugin install spec-boundary-harness
+```
+
+Some Claude Code surfaces (notably the IDE side-panel) show `/plugin isn't available in this environment`. Use the GUI in that case.
+
 ### Updating
+
+In the **Manage Plugins → Marketplaces** tab, click **Update** on the spec-boundary-harness row, then go back to **Plugins** and click **Install** again (this picks up the new version).
+
+Or via slash command:
 
 ```text
 /plugin marketplace update Satgym/spec-boundary-harness

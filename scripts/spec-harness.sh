@@ -38,9 +38,12 @@ fi
 # 3) Try common Claude Code marketplace install paths
 if [ -z "$PLUGIN_ROOT" ]; then
   for candidate in \
+      "$HOME/.claude/plugins/marketplaces/spec-boundary-harness" \
       "$HOME/.claude/plugins"/*/spec-boundary-harness \
       "$HOME/.claude/plugins/marketplaces"/*/spec-boundary-harness \
-      "$HOME/.claude/plugins/marketplaces"/*/plugins/spec-boundary-harness; do
+      "$HOME/.claude/plugins/marketplaces"/*/plugins/spec-boundary-harness \
+      "$HOME/.claude/plugins/installed"/*/spec-boundary-harness \
+      "$HOME/.claude/plugins/repos"/*/spec-boundary-harness; do
     if [ -e "$candidate/bin/spec-harness.mjs" ]; then
       PLUGIN_ROOT="$candidate"
       break
@@ -48,7 +51,15 @@ if [ -z "$PLUGIN_ROOT" ]; then
   done
 fi
 
-# 4) Last resort: current working directory (developer checkout)
+# 4) Deep search across the plugins tree (last-resort, bounded depth)
+if [ -z "$PLUGIN_ROOT" ] && [ -d "$HOME/.claude/plugins" ]; then
+  CANDIDATE="$(find "$HOME/.claude/plugins" -maxdepth 6 -type f -name 'spec-harness.mjs' -path '*/bin/*' 2>/dev/null | head -1)"
+  if [ -n "$CANDIDATE" ]; then
+    PLUGIN_ROOT="$(cd "$(dirname "$CANDIDATE")/.." && pwd)"
+  fi
+fi
+
+# 5) Last resort: current working directory (developer checkout)
 if [ -z "$PLUGIN_ROOT" ] && [ -f "$(pwd)/bin/spec-harness.mjs" ]; then
   PLUGIN_ROOT="$(pwd)"
 fi
