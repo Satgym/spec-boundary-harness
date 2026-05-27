@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — 2026-05-27
+
+Revert the plugin `source` form to the `github` shorthand. Users on otherwise-up-to-date Claude Code builds reported the `{"source": "git", "url": "..."}` form (introduced in 0.3.2) as **"This plugin uses a source type your Claude Code version does not support."** The `github` shorthand was the only form known to be recognised across all the builds we tested.
+
+### Changed
+- `marketplace.json` plugin source is now:
+  ```json
+  "source": { "source": "github", "repo": "Satgym/spec-boundary-harness" }
+  ```
+  This was last used in 0.3.1, where it produced an SSH host-key error rather than a source-type error. The host-key issue is environmental and fixed with a one-liner (`ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts`); the source-type issue is structural and cannot be worked around.
+
+### Fix sequence users may need to run once
+
+1. (In any shell)
+   ```bash
+   ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+   ```
+2. **Manage Plugins → Marketplaces** → remove the existing `spec-boundary-harness` marketplace (GUI cache may otherwise hold an old manifest) → re-add `https://github.com/Satgym/spec-boundary-harness.git`.
+3. **Manage Plugins → Plugins** → Install.
+
+### If this still fails
+
+The next escalation is to move plugin files into a `plugins/spec-boundary-harness/` subdirectory and switch the marketplace source to a path form (`"./plugins/spec-boundary-harness"`). Tracked separately if it becomes necessary.
+
 ## [0.3.3] — 2026-05-27
 
 Pre-flight pass aimed at making the **Manage Plugins GUI flow** (Add Marketplace via GitHub URL → Install) work reliably across Claude Code versions.

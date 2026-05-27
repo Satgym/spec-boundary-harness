@@ -58,21 +58,28 @@ Without Codex, Phase 1 still runs but validation is skipped and the harness exit
 
 #### "This plugin uses a source type your Claude Code version does not support"
 
-1. **Refresh the marketplace first** (in the **Manage Plugins → Marketplaces** GUI, click the marketplace and choose Update; or in a Claude Code session that supports it: `/plugin marketplace update Satgym/spec-boundary-harness`).
-2. Then click **Install** again.
+The marketplace GUI sometimes caches the older manifest even after a successful update. Force a clean refresh:
 
-The marketplace manifest is now in the `git` source form with an explicit HTTPS URL, which bypasses SSH entirely and is supported across a wider range of Claude Code versions.
+1. **Manage Plugins → Marketplaces** → remove the existing `spec-boundary-harness` row.
+2. Re-add it with the full HTTPS URL:
+   ```
+   https://github.com/Satgym/spec-boundary-harness.git
+   ```
+3. **Plugins** tab → **Install**.
+
+If you still see the same error after re-adding the marketplace, confirm your Claude Code version (`claude --version`) is recent and try again from step 1.
 
 #### "Host key verification failed" / "No ED25519 host key is known for github.com"
 
 Cause: Claude Code tried to clone the plugin over SSH (`git@github.com:...`) but your `~/.ssh/known_hosts` does not yet trust github.com.
 
-Two ways to fix:
-- **Update the marketplace** as above. v0.3.2+ uses an HTTPS clone URL, so SSH is no longer touched.
-- Or, one-time, add github.com to your SSH known hosts:
-  ```bash
-  ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
-  ```
+One-time fix (run in any shell, before retrying install):
+
+```bash
+ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+```
+
+Then retry **Install** in Manage Plugins.
 
 #### `/plugin isn't available in this environment`
 
