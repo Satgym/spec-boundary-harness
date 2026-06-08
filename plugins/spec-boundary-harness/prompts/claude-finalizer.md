@@ -90,6 +90,17 @@ For each axis, `A_fe == A_be` must hold. If they could legitimately diverge give
 
 This check often surfaces M1-style cross-section mismatches and missing serialization metadata that the previous checks didn't fully cover. Treat any divergence as a P0 blocker for finalization.
 
+### Applicability gate for the integration-binding checks (decide ONCE, then skip the rest)
+
+The five checks below cover hardware / separate-repo / persistence failure modes. A plain software feature triggers almost none of them, so **do not deliberate each check** — evaluate four booleans once and run only the checks they enable:
+
+- `has_contract_surface` ← the active profile declares a `contract_surface` block.
+- `has_external_systems` ← `05-domain-model.yaml` contains a non-empty `external_systems` block.
+- `has_persisted_user_data` ← at least one interaction saves / records / edits user data.
+- `has_composition` ← the active profile declares a `composition` block.
+
+Run: `[CHECK: contract-binding]` iff `has_contract_surface`; `[CHECK: external-truth-resolved]` iff `has_external_systems`; `[CHECK: persistence-completeness]` iff `has_persisted_user_data`; `[CHECK: composition-boundary]` iff `has_composition`. `[CHECK: definition-of-done]` runs whenever the frontend packet ships any mock/fixture (≈ always for this profile) and is cheap. **If all four booleans are false, the only integration-binding check you run is `definition-of-done` — skip the other four entirely and move on.**
+
 #### [CHECK: contract-binding]
 
 If the profile declares a `contract_surface`, the frontend and backend must bind to the **same canonical code**, not parallel stubs. Before writing:

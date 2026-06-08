@@ -461,6 +461,13 @@ Run `spec-harness validate` to populate this report.
    - Numeric ID / version types (e.g. `revision: integer` vs `revision: string`).
    - List response wrapper shape (e.g. `{ items: [...] }` vs raw `[...]`).
    These four go into `06-openapi.patch.yaml` (as `x-meta` or in component schemas) AND into `01-requirements.yaml` as four explicit decisions. The finalizer relies on these being present.
+> **Steps 10–14 are conditional — decide applicability ONCE and skip the inapplicable ones** (don't deliberate each). A plain read-only software feature runs only step 11 and skips 10 / 12 / 13 / 14:
+> - **10** (contract-pin): only if the profile declares `contract_surface`.
+> - **11** (mock-vs-real DoD): whenever the frontend ships any mock/fixture (≈ always for this profile); keep it a short table.
+> - **12** (external ground truth): only if the feature touches hardware / firmware / a third-party or legacy system.
+> - **13** (persistence): only if some interaction saves / records / edits user data.
+> - **14** (host composition): only if the profile declares `composition`.
+
 10. **[STEP: canonical-contract-pin]** If the profile declares a `contract_surface`, pin the canonical in-process contract the frontend must import:
     - Record the exact package paths (error hierarchy, repository interfaces, value objects), the base exception class name and whether it is the base or a subclass, and constructor signatures *with argument types* (e.g. `feed: double`, named vs positional).
     - Persist into `08-frontend-claude-packet.md` ("Canonical backend contract") and as L2 items in `03-boundary-map.yaml`.
