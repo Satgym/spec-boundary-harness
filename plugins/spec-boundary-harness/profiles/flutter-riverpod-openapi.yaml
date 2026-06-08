@@ -52,3 +52,32 @@ layer_mapping:
   L4:
     - server/infrastructure/**
     - backend/integrations/**
+
+# --- Host integration / composition boundary -----------------------------
+# Where a feature screen is allowed to sit inside the running app, and which
+# host-owned chrome it must NOT re-implement. Prevents the "frontend shipped its
+# own Lnb/TopBar/WindowChrome and double-nested under the host shell" failure.
+# Override per-feature in inputs/<feature>/profile.yaml when a feature owns its
+# own shell (e.g. a full-screen onboarding flow).
+composition:
+  feature_scope: body-only          # body-only | full-shell
+  host_shell: existing              # the host app already provides the shell
+  host_owns:                        # feature must NOT build or nest these
+    - left-nav / Lnb
+    - top-bar / app-bar
+    - window-chrome / title-bar
+  feature_mounts_at: app body slot  # where the host embeds the feature
+
+# --- In-process contract surface (not just the HTTP/OpenAPI contract) -----
+# For an in-process client like Flutter, the real binding is Dart code, not
+# only the OpenAPI patch: the frontend imports backend-owned interfaces, error
+# types, and value objects. Pin these to the MAIN canonical paths so the
+# frontend cannot invent its own divergent stub (the exception-base-inverted
+# `DeviceException` class of bug). When a feature is developed in a separate
+# repo, the canonical paths below are the contract to import — never re-declare.
+contract_surface:
+  error_hierarchy: lib/core/errors.dart        # single canonical exception base
+  repository_interfaces: lib/features/*/data/repositories/interfaces/**
+  value_objects: lib/features/*/domain/**
+  # The frontend MUST import these; declaring a parallel stub for any of them is
+  # forbidden (see frontend_forbidden_files and the canonical-contract-pin step).

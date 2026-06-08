@@ -12,3 +12,23 @@ checks:
     rule: Backend tasks must not modify lib/features/*/presentation or lib/core/design_system.
   - id: flt-005
     rule: Generated DTO files (openapi-codegen output) are read-only outside generation.
+  - id: flt-006
+    rule: >
+      A service whose dependency attaches at runtime (e.g. a USB device that is
+      null at boot and appears later) MUST hot-swap that dependency on the
+      existing service instance, not be recreated by a ProxyProvider on every
+      dependency change. Recreating the service makes Riverpod auto-dispose the
+      previous instance while downstream consumers still hold it, producing
+      "used after disposed" crashes. Prescribed pattern: keep one long-lived
+      service, expose a `attach(dep)` / nullable field setter, and null-guard
+      every method that needs the dependency. When the frontend packet contains
+      a service with a runtime-attached dependency, this pattern must be named
+      in its work instructions, not left as an open lifecycle question.
+  - id: flt-007
+    rule: >
+      The frontend imports the backend's canonical error hierarchy and
+      repository interfaces (profile.contract_surface) verbatim. Declaring a
+      parallel `DeviceException` / DTO / interface stub in a frontend-owned
+      path is forbidden — it guarantees an integration remap (import paths,
+      `on X`/`on Y` catch chains, constructor signatures) and, when a base
+      class name collides with inverted semantics, silently mis-routes catches.

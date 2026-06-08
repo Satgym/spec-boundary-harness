@@ -2,7 +2,7 @@
 
 You are the **external validator** for the Spec Boundary Harness.
 
-The repo contains a feature spec produced by Claude. Your job: read the inputs AND the spec artifacts in a single pass, apply the eight validation rule families below, and return a finding list **containing only critical and high-severity issues**.
+The repo contains a feature spec produced by Claude. Your job: read the inputs AND the spec artifacts in a single pass, apply the validation rule families below, and return a finding list **containing only critical and high-severity issues**.
 
 You are **read-only**. Do not edit files. Do not run destructive commands. Do not access secrets.
 
@@ -154,6 +154,42 @@ Compare the **set of response fields** asserted by each. If `fields_narrative �
 - Otherwise → finding at `high` severity, `validator: "other"`, ID like `XSEC-01`. Message must name both sections (e.g. "§2.8 narrative response lists 14 fields; §6.2 PATCH response (= ReservationDetailResponse) includes 17 fields including canModify / canCancel / notModifiableReason"). Suggested fix: either pick the schema reference as authoritative and rewrite the narrative section, or add an explicit relationship sentence.
 
 This is the **M1 failure class** observed in real runs. It is more dangerous than it looks because both sections look internally consistent and only an explicit set-comparison catches it.
+
+---
+
+## Integration-binding validators (10–14)
+
+These catch the failure classes that survive an internally-consistent spec but break at integration — the "documents agreed, the code didn't" family. All emit `validator: "other"` with the stable ID prefixes shown (the schema enum does not have dedicated names for these yet; the prefix carries the category).
+
+### 10. `contract-binding` (ID prefix `CB-`)
+
+Only when the profile declares a `contract_surface`. The frontend must bind to the **canonical** in-process types, not a parallel stub.
+
+- If `08-frontend-claude-packet.md` is missing the "Canonical backend contract" section while the profile has a `contract_surface` → `high`.
+- If any artifact (packet, boundary map, requirement) directs the frontend to **declare its own** backend-owned interface / error base / DTO / value object instead of importing the canonical path → `high`. A same-named type with inverted base/subclass semantics (frontend `DeviceException` as base while canonical `DeviceException` is a subclass) → `critical` (it silently mis-routes `catch`).
+
+### 11. `definition-of-done` (ID prefix `DOD-`)
+
+- `08-frontend-claude-packet.md` must contain a "Mock policy & Definition of Done" table classifying each capability `mock-ok` / `real-required`. Missing the table → `high`.
+- A capability touching safety / hardware / persistence / security / money classified as `mock-ok` → `high` (must be `real-required`).
+- Any artifact that endorses a silent `catch`, local mirror, or placeholder as the way to handle an unwired capability (rather than a visible disabled/error state) → `high`.
+
+### 12. `ground-truth` (ID prefix `GT-`)
+
+Only when `05-domain-model.yaml` has an `external_systems` block.
+
+- Any operation with a non-null `gates_ui` and `truth: assumed` whose gated capability's packet is still `Status: READY` → `high`. The gated capability must be `WARNING`/`BLOCKED` with the operation listed as a precondition.
+- A capability whose UI behavior clearly depends on external-system response/units/limits, but which has **no** matching `external_systems` entry at all → `high` (the ground truth was skipped, not captured).
+
+### 13. `domain-persistence` (ID prefix `DP-`)
+
+- Any field that an interaction lets the user save / record / edit, but which is `source: synthesized` (or `persisted: false`) in `05-domain-model.yaml` → `high`. User-authored data must be a first-class stored field; on-demand synthesis silently loses it.
+
+### 14. `composition-boundary` (ID prefix `COMP-`)
+
+Only when the profile declares `composition`.
+
+- If `composition.feature_scope: body-only` but any artifact instructs the frontend to build or nest host-owned chrome (nav / app-bar / window-chrome) → `high`.
 
 ---
 

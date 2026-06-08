@@ -18,7 +18,12 @@ Invoke the **`spec-harness` skill** (`.claude/skills/spec-harness/SKILL.md`). It
 - Server-only logic (password verification, payment/pricing calc, permission decision, account lock, DB queries, token signing, external secret, webhook verification) lives on **L3/L4 only**, never L0/L1.
 - Frontend packets must not list backend-only responsibilities.
 - Backend packets must not modify design-system / presentation files.
-- A frontend or backend packet is `Status: READY` **only if** there are no unresolved high/critical conflicts and no high/critical security warnings.
+- A frontend or backend packet is `Status: READY` **only if** there are no unresolved high/critical conflicts, no high/critical security warnings, and no `external_systems` operation gating a capability is still `truth: assumed`.
+- **Contract is code.** When the profile declares a `contract_surface`, the frontend imports the canonical in-process types (error hierarchy / interfaces / value objects) verbatim and never declares a parallel stub for a backend-owned type.
+- **"Looks done" ≠ "works".** Mock/fixture/placeholder is a dev convenience, not a definition of done. Safety / hardware / persistence / security / money capabilities are `real-required`. An unwired capability surfaces as a visible disabled/error state — never a silent catch, local mirror, or fake-success.
+- **Ground truth before backlog.** External-system behavior (hardware/firmware/third-party) the UI depends on must be `verified`, not deferred as "investigate later".
+- **User-authored data is a first-class persisted field**, never on-demand fixture synthesis.
+- **Body-only features** must not re-implement host-owned shell (nav / app-bar / window-chrome) when the profile's `composition.feature_scope` is `body-only`.
 - Never read or modify `.env`, `.env.*`, `secrets/**`, `credentials/**`.
 - Do not commit changes unless the user explicitly asks.
 - Do not edit `specs/<feature-id>/` artifacts by hand outside the harness pipeline. To regenerate, re-run the skill.
