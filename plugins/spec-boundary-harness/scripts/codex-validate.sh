@@ -114,6 +114,18 @@ if echo "$CODEX_HELP" | grep -q -- "--cd"; then
   CD_FLAG="--cd $PROJECT_ROOT"
 fi
 
+# Reasoning effort. The validator is critical/high-only and narrowly scoped, so
+# the default high-reasoning pass is overkill — and Codex is the dominant cost of
+# the whole pipeline. Default to `medium`; override with CODEX_REASONING_EFFORT
+# (low|medium|high). Gated on `-c/--config` support; if the key turns out to be
+# unsupported, the run below retries once WITHOUT it so validation never silently
+# skips on a config error.
+EFFORT="${CODEX_REASONING_EFFORT:-medium}"
+CONFIG_FLAG=""
+if [ -n "$EFFORT" ] && echo "$CODEX_HELP" | grep -q -- "--config"; then
+  CONFIG_FLAG="-c model_reasoning_effort=$EFFORT"
+fi
+
 USER_BODY="
 Inputs:
 - Input directory: $INPUT_DIR
@@ -143,8 +155,16 @@ $USER_BODY"
 
 set +e
 # shellcheck disable=SC2086
-codex exec $SANDBOX_FLAG $SKIP_GIT_FLAG $SCHEMA_FLAG $OUTPUT_LAST_FLAG $CD_FLAG "$FULL_PROMPT" >"$LOG_FILE" 2>&1
+codex exec $SANDBOX_FLAG $SKIP_GIT_FLAG $SCHEMA_FLAG $OUTPUT_LAST_FLAG $CD_FLAG $CONFIG_FLAG "$FULL_PROMPT" >"$LOG_FILE" 2>&1
 EXIT=$?
+# Stability guard: if a reasoning-effort override was passed and Codex rejected
+# it, retry once without the override rather than skip validation entirely.
+if [ "$EXIT" -ne 0 ] && [ -n "$CONFIG_FLAG" ]; then
+  echo "codex-validate: first attempt failed (exit $EXIT); retrying without reasoning-effort override" >>"$LOG_FILE"
+  # shellcheck disable=SC2086
+  codex exec $SANDBOX_FLAG $SKIP_GIT_FLAG $SCHEMA_FLAG $OUTPUT_LAST_FLAG $CD_FLAG "$FULL_PROMPT" >"$LOG_FILE" 2>&1
+  EXIT=$?
+fi
 set -e
 
 if [ "$EXIT" -ne 0 ]; then

@@ -89,6 +89,8 @@ Codex now runs in **critical/high-only mode**: it does NOT report minor wording,
 
 Non-zero exit → stop and report. Common causes: Codex unavailable, missing artifact, schema-invalid Codex JSON. Zero exit → continue.
 
+**Performance:** Codex is the slow part of the pipeline. The default is **one** validate pass. Codex runs at `model_reasoning_effort=medium` (set in `scripts/codex-validate.sh`; override with `CODEX_REASONING_EFFORT=low|medium|high`). Do not re-run validate for thoroughness — only re-run when a fix actually changed a validated artifact (Phase 3 step 3). A clean or all-rejected first pass means you are done validating.
+
 ---
 
 ## Phase 3 — Triage, fix, then write the 3 Korean hand-off documents
@@ -98,7 +100,7 @@ Non-zero exit → stop and report. Common causes: Codex unavailable, missing art
    - **Accept** if local and safe (re-categorize, add missing state, READY→BLOCKED, add security warning, fix `security: []` on auth endpoint). Apply via Edit.
    - **Reject** if wrong, or accepting would violate a non-negotiable principle. Document the reason.
    - **Needs human decision** for structural/scope/product calls.
-3. Re-run `$SH validate <INPUT_DIR> <FEATURE_ID>`. **Cap at 3 iterations.**
+3. **Re-validate only when it can change the result.** Re-run `$SH validate` **only if** step 2 applied at least one *accepted fix to a validated artifact* (`01`–`10`). If you applied zero fixes — no findings, or every finding was rejected / needs-human — **do not re-validate**: Codex over unchanged artifacts returns identical findings, and this redundant pass is the single biggest time sink in the whole pipeline (each pass is a full external read over ~13 files). **Hard cap: 2 validate runs total** (the initial Phase-2 run + at most one confirmation here). A 3rd run is justified only if the confirmation surfaced a *new* critical/high that you then fixed.
 4. **Once findings reach steady state, write the 3 Korean documents** at `<PROJECT_ROOT>/results/<FEATURE_ID>/`:
 
    - `01-공통-규칙.md` — 양쪽 다 봐야 하는 문서. 기능 요약, 확정 사항 / proposal / open question, 미해결 충돌 + 보안 경고, API 계약 요약, HTTP 코드↔UI 상태 매핑, 통합 체크리스트, L0–L4 책임 분담.

@@ -30,7 +30,7 @@ Codex is now configured to report only `critical` and `high`-severity findings (
    - **Needs human decision** if: the change is structural, ambiguous, or would require a product decision (e.g. "is Kakao login in scope or not?"). Do not auto-apply.
 2. For accepted findings, apply the change to the relevant file under `specs/<feature-id>/` via Edit. Keep changes minimal.
 3. After applying changes, re-read the intermediate files and confirm the non-negotiable principles still hold.
-4. The skill is responsible for re-running `validate` and capping at 3 triage loops. Once the loop reaches steady state, proceed to Part 2.
+4. The skill re-runs `validate` **only when step 2 applied an accepted fix to a validated artifact** — a clean or all-rejected/needs-human pass is already steady state, so do not trigger a redundant Codex run (it is the pipeline's biggest time sink and returns identical findings on unchanged files). Hard cap: 2 validate runs total. Once steady state is reached, proceed to Part 2.
 
 ---
 
